@@ -5,7 +5,6 @@ import { useState, useEffect } from 'react';
 import { trackEvent } from '@/lib/analytics';
 import { isDemoMode, createDemoCheckoutSession, showDemoNotification } from '@/lib/demo';
 
-// Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
 export default function CheckoutPilotPage() {
@@ -72,8 +71,6 @@ export default function CheckoutPilotPage() {
     }
   };
 
-  // wasCanceled state is now managed above
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-background-primary to-background-secondary flex items-center justify-center px-4">
       <div className="max-w-2xl mx-auto">
@@ -120,7 +117,7 @@ export default function CheckoutPilotPage() {
             </div>
           </div>
 
-          {/* What's included */
+          {/* What's included */}
           <div className="text-left mb-8">
             <h3 className="text-lg font-semibold text-text-primary mb-4 text-center">
               What's Included in Your Pilot:
@@ -148,7 +145,6 @@ export default function CheckoutPilotPage() {
             </ul>
           </div>
 
-          {/* Risk-free guarantee */}
           <div className="bg-gradient-to-r from-accent-beauty/10 to-cta-primary/10 border border-accent-beauty/20 rounded-lg p-4 mb-6">
             <p className="text-text-primary font-medium">
               🛡️ Risk-Free Pilot Program

@@ -120,7 +120,7 @@ export class LiveDemoStateMachine {
     this.messages = [
       createAIMessage(
         "Hi! I can help you book Botox, check pricing, or reschedule. What do you need?",
-        ["Book a Botox slot", "Pricing", "Reschedule", "Ask a question"]
+        ["Book a Botox slot", "Pricing", "Reschedule"]
       )
     ];
   }

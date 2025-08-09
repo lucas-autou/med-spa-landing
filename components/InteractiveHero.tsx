@@ -3,8 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { trackEvent } from '@/lib/analytics';
 import { useRouter } from 'next/navigation';
-import { liveDemoInstance, type DemoMessage } from '@/lib/liveDemo';
-import { detectContraindications } from '@/lib/nluShim';
+import { classifyIntent, type IntentResult } from '@/lib/intentMapping';
 
 // Voice interface types
 interface SpeechRecognitionEvent {
@@ -44,6 +43,17 @@ declare global {
   }
 }
 
+// Message interface for AI chat
+interface ChatMessage {
+  id: string;
+  type: 'user' | 'ai';
+  text: string;
+  timestamp: number;
+  intent?: string;
+  confidence?: number;
+  isCtaMessage?: boolean;
+}
+
 export default function InteractiveHero() {
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -52,73 +62,153 @@ export default function InteractiveHero() {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   
   // Video and UI state
-  const [videoLoaded, setVideoLoaded] = useState(false);
+  const [videoLoaded, setVideoLoaded] = useState(true);
   const [videoState, setVideoState] = useState<'idle' | 'listening' | 'talking'>('idle');
   
-  // Demo state
-  const [messages, setMessages] = useState<DemoMessage[]>([]);
+  // AI Chat state
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [currentChips, setCurrentChips] = useState<string[]>(['Book appointment', 'See pricing', 'Ask question']);
   const [selectedChip, setSelectedChip] = useState<string | null>(null);
   const [isTyping, setIsTyping] = useState(false);
-  const [showCTARail, setShowCTARail] = useState(false);
   
   // Voice interface
-  const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
   const [currentTranscript, setCurrentTranscript] = useState('');
   
   // Input state
   const [textInput, setTextInput] = useState('');
-  const [inputMode, setInputMode] = useState<'chips' | 'text' | 'name' | 'phone'>('chips');
-  const [awaitingInput, setAwaitingInput] = useState<'name' | 'phone' | null>(null);
 
-  // Process user input through live demo (defined early to avoid reference errors)
-  const processUserInput = useCallback((input: string, isChipSelection: boolean) => {
+  // Add initial greeting message
+  useEffect(() => {
+    const initialMessage: ChatMessage = {
+      id: '1',
+      type: 'ai',
+      text: "Hi! I can help you book Botox, check pricing, or reschedule. What do you need?",
+      timestamp: Date.now()
+    };
+    setMessages([initialMessage]);
+    trackEvent('hero_view');
+  }, []);
+
+  // AI Chat function
+  const handleAIMessage = useCallback(async (message: string) => {
+    const userMessage: ChatMessage = {
+      id: Date.now().toString() + '_user',
+      type: 'user',
+      text: message,
+      timestamp: Date.now()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
     setIsTyping(true);
     setVideoState('listening');
-    
+
+    try {
+      // Prepare conversation history for AI
+      const history = messages.slice(-6).map(msg => ({
+        type: msg.type,
+        text: msg.text
+      }));
+
+      // Call AI API
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message,
+          conversationHistory: history,
+          context: {
+            mode: 'general'
+          }
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get AI response');
+      }
+
+      const aiResult = await response.json();
+      
+      setTimeout(() => {
+        const aiMessage: ChatMessage = {
+          id: Date.now().toString() + '_ai',
+          type: 'ai',
+          text: aiResult.response,
+          timestamp: Date.now(),
+          confidence: aiResult.confidence
+        };
+
+        setIsTyping(false);
+        setVideoState('talking');
+        setMessages(prev => [...prev, aiMessage]);
+        
+        // Update chips with AI response
+        if (aiResult.chips && aiResult.chips.length > 0) {
+          setCurrentChips(aiResult.chips.slice(0, 3)); // Max 3 chips
+        }
+        
+        // Show CTA if appropriate - add inline message instead of bottom rail
+        if (aiResult.followUpAction === 'booking' || aiResult.followUpAction === 'consult') {
+          setTimeout(() => {
+            const ctaMessage: ChatMessage = {
+              id: Date.now().toString() + '_cta',
+              type: 'ai',
+              text: "I'd love to help set this up for your med spa! We can start with a 14-day pilot to see how it works for you.",
+              timestamp: Date.now(),
+              isCtaMessage: true
+            };
+            setMessages(prev => [...prev, ctaMessage]);
+          }, 1500);
+        }
+        
+        // Return to idle state
+        setTimeout(() => {
+          setVideoState('idle');
+        }, 2500);
+      }, 800);
+
+    } catch (error) {
+      console.error('AI chat error:', error);
+      
+      setTimeout(() => {
+        const fallbackMessage: ChatMessage = {
+          id: Date.now().toString() + '_ai_fallback',
+          type: 'ai',
+          text: "I'm having trouble connecting right now, but I'd love to help! Would you like to schedule a consultation or ask about our services?",
+          timestamp: Date.now()
+        };
+
+        setIsTyping(false);
+        setVideoState('talking');
+        setMessages(prev => [...prev, fallbackMessage]);
+        setCurrentChips(['Schedule consult', 'See pricing', 'Try again']);
+        
+        setTimeout(() => {
+          setVideoState('idle');
+        }, 2000);
+      }, 500);
+    }
+  }, [messages]);
+
+  // Process user input (text or chip)
+  const processUserInput = useCallback((input: string, isChipSelection: boolean = false) => {
     // Clear selected chip after short delay
     if (isChipSelection) {
+      setSelectedChip(input);
       setTimeout(() => setSelectedChip(null), 300);
     }
     
-    // Process through state machine
-    setTimeout(() => {
-      const newMessages = liveDemoInstance.processInput(input, isChipSelection);
-      setMessages([...newMessages]);
-      setIsTyping(false);
-      setVideoState('talking');
-      
-      // Check if booking is complete to show CTA
-      if (liveDemoInstance.isBookingComplete()) {
-        setShowCTARail(true);
-        trackEvent('cta_viewed');
-      }
-      
-      // Update input mode based on latest message
-      const latestMessage = newMessages[newMessages.length - 1];
-      if (latestMessage && latestMessage.type === 'ai') {
-        if (latestMessage.requiresInput) {
-          setAwaitingInput(latestMessage.requiresInput);
-          setInputMode(latestMessage.requiresInput);
-        } else if (latestMessage.chips) {
-          setInputMode('chips');
-          setAwaitingInput(null);
-        } else {
-          setInputMode('text');
-        }
-      }
-      
-      // Return to idle after talking
-      setTimeout(() => setVideoState('idle'), 2000);
-    }, 400);
-  }, []);
+    handleAIMessage(input);
+  }, [handleAIMessage]);
 
   // Handle voice input
   const handleVoiceInput = useCallback((transcript: string) => {
     if (transcript.trim()) {
       processUserInput(transcript.trim(), false);
-      trackEvent('chip_select', { value: `voice: ${transcript}` });
+      trackEvent('voice_started', { value: transcript.substring(0, 50) });
     }
   }, [processUserInput]);
 
@@ -131,49 +221,42 @@ export default function InteractiveHero() {
       recognitionRef.current = new SpeechRecognition();
       const recognition = recognitionRef.current;
       
-      recognition.continuous = false;
-      recognition.interimResults = true;
-      recognition.lang = 'en-US';
-      
-      recognition.onresult = (event: SpeechRecognitionEvent) => {
-        let transcript = '';
-        for (let i = event.results.length - 1; i >= 0; i--) {
-          if (event.results[i]) {
-            transcript = event.results[i][0].transcript;
-            break;
-          }
-        }
-        setCurrentTranscript(transcript);
+      if (recognition) {
+        recognition.continuous = false;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
         
-        // Process final result
-        const lastResult = event.results[event.results.length - 1];
-        if (lastResult && lastResult.isFinal) {
-          handleVoiceInput(transcript);
-        }
-      };
-      
-      recognition.onend = () => {
-        setIsListening(false);
-        setCurrentTranscript('');
-      };
-      
-      recognition.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        setIsListening(false);
-        setCurrentTranscript('');
-      };
+        recognition.onresult = (event: SpeechRecognitionEvent) => {
+          let transcript = '';
+          for (let i = event.results.length - 1; i >= 0; i--) {
+            if (event.results[i]) {
+              transcript = event.results[i][0].transcript;
+              break;
+            }
+          }
+          setCurrentTranscript(transcript);
+          
+          // Process final result
+          const lastResult = event.results[event.results.length - 1];
+          if (lastResult && lastResult.isFinal) {
+            handleVoiceInput(transcript);
+          }
+        };
+        
+        recognition.onend = () => {
+          setIsListening(false);
+          setCurrentTranscript('');
+        };
+        
+        recognition.onerror = (event) => {
+          console.error('Speech recognition error:', event.error);
+          setIsListening(false);
+          setCurrentTranscript('');
+        };
+      }
     }
   }, [handleVoiceInput]);
 
-  // Initialize demo with greeting
-  useEffect(() => {
-    const initialMessages = liveDemoInstance.getMessages();
-    setMessages(initialMessages);
-    
-    // Track initial view
-    trackEvent('hero_view');
-  }, []);
-  
   // Scroll to latest content
   useEffect(() => {
     if (chatRef.current) {
@@ -183,20 +266,18 @@ export default function InteractiveHero() {
 
   // Video state mapping
   const getVideoSrc = () => {
-    const basePath = '/videos/';
     switch (videoState) {
       case 'listening':
-        return `${basePath}listening.mp4`;
+        return '/videos/listening.mp4';
       case 'talking':
-        return `${basePath}talking_neutral.mp4`;
+        return '/videos/talking_neutral.mp4';
       default:
-        return `${basePath}idle.mp4`;
+        return '/videos/idle.mp4';
     }
   };
 
   // Handle chip selection
   const handleChipClick = (chipLabel: string) => {
-    setSelectedChip(chipLabel);
     trackEvent('chip_select', { value: chipLabel });
     processUserInput(chipLabel, true);
   };
@@ -206,25 +287,12 @@ export default function InteractiveHero() {
     e.preventDefault();
     if (textInput.trim()) {
       const input = textInput.trim();
-      
-      // Check for contraindications
-      if (detectContraindications(input)) {
-        trackEvent('chip_select', { value: `contraindication: ${input}` });
-      } else {
-        trackEvent('answer_sent', { input });
-      }
-      
+      trackEvent('text_input_sent', { value: input.substring(0, 50) });
       processUserInput(input, false);
       setTextInput('');
     }
   };
   
-  // Toggle voice mode
-  const toggleVoiceMode = () => {
-    if (!voiceSupported) return;
-    setIsVoiceMode(!isVoiceMode);
-    trackEvent('chip_select', { value: `voice_mode: ${!isVoiceMode}` });
-  };
   
   // Start/stop listening
   const toggleListening = () => {
@@ -236,7 +304,7 @@ export default function InteractiveHero() {
       try {
         recognitionRef.current.start();
         setIsListening(true);
-        trackEvent('chip_select', { value: 'voice_start' });
+        trackEvent('voice_started');
       } catch (error) {
         console.error('Failed to start speech recognition:', error);
       }
@@ -251,24 +319,6 @@ export default function InteractiveHero() {
     } else {
       trackEvent('cta_click_full', { location: 'hero' });
       router.push('/checkout-full');
-    }
-  };
-  
-  // Get current message chips
-  const getCurrentChips = () => {
-    const latestMessage = messages[messages.length - 1];
-    return latestMessage?.type === 'ai' ? latestMessage.chips || [] : [];
-  };
-  
-  // Get input placeholder based on mode
-  const getInputPlaceholder = () => {
-    switch (inputMode) {
-      case 'name':
-        return 'Enter your first name...';
-      case 'phone':
-        return 'Enter your phone number...';
-      default:
-        return 'Ask about pricing, setup time, calendars...';
     }
   };
 
@@ -291,20 +341,22 @@ export default function InteractiveHero() {
           <div className="grid grid-cols-1 lg:grid-cols-2 lg:gap-0">
           
             {/* Left: Avatar Video */}
-            <div className="relative p-6 lg:p-8">
-              <div className="sticky top-6">
-                {/* Video Container */}
-                <div className="relative w-full max-w-md mx-auto lg:max-w-none">
-                  <div className="aspect-[3/4] lg:aspect-[3/4] min-h-[480px] max-h-[680px] lg:min-h-0 lg:max-h-none rounded-2xl overflow-hidden bg-background-card">
+            <div className="relative">
+              {/* Video Container */}
+              <div className="relative w-full h-full min-h-[500px] md:min-h-[600px] lg:min-h-[650px]">
+                <div className="w-full h-full rounded-l-3xl lg:rounded-r-none overflow-hidden bg-background-card">
                   <video
                     ref={videoRef}
                     src={getVideoSrc()}
+                    key={videoState}
                     autoPlay
                     loop
                     muted
                     playsInline
                     className="w-full h-full object-cover"
                     onLoadedData={() => setVideoLoaded(true)}
+                    onCanPlay={() => setVideoLoaded(true)}
+                    onLoadStart={() => setVideoLoaded(false)}
                     aria-label="Virtual assistant avatar"
                   />
                   {/* Stronger bottom gradient for contrast */}
@@ -343,7 +395,7 @@ export default function InteractiveHero() {
                   <div className="absolute bottom-4 left-4">
                     {/* "I'm here 24/7..." line - smaller and above chips */}
                     <div className="text-sm text-white/80 mb-2">
-                      I'm here 24/7 to answer questions and book appointments
+                      I&apos;m here 24/7 to answer questions and book appointments
                     </div>
                     <div className="flex flex-wrap gap-x-2.5 md:gap-x-3 gap-y-2 pb-2">
                       <div className="text-[13px] md:text-sm bg-white/85 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm ring-1 ring-black/5 font-medium text-gray-700 animate-fade-in">
@@ -357,13 +409,12 @@ export default function InteractiveHero() {
                       </div>
                     </div>
                   </div>
-                  </div>
                 </div>
               </div>
             </div>
 
             {/* Right: Chat Interface */}
-            <div className="flex flex-col h-[500px] md:h-[600px] lg:h-[700px] p-6 lg:p-8 lg:border-l lg:border-border-default bg-gray-50 lg:bg-transparent">
+            <div className="flex flex-col min-h-[500px] md:min-h-[600px] lg:min-h-[650px] p-6 lg:p-8 lg:border-l lg:border-border-default bg-gray-50 lg:bg-transparent">
               {/* Header */}
               <div className="mb-6">
                 <div className="flex items-center justify-between">
@@ -371,19 +422,6 @@ export default function InteractiveHero() {
                     <span className="text-sm text-text-primary font-medium">
                       Live Demo
                     </span>
-                    {voiceSupported && (
-                      <button
-                        onClick={toggleVoiceMode}
-                        className={`px-3 py-1 text-xs rounded-full transition-colors ${
-                          isVoiceMode 
-                            ? 'bg-teal text-white' 
-                            : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                        }`}
-                        title={isVoiceMode ? 'Switch to text mode' : 'Enable voice mode'}
-                      >
-                        🎤 {isVoiceMode ? 'Voice On' : 'Voice Off'}
-                      </button>
-                    )}
                   </div>
                   <span className="text-xs text-text-tertiary">Interactive • no patient data stored</span>
                 </div>
@@ -392,44 +430,67 @@ export default function InteractiveHero() {
               {/* Chat Interface */}
               <div 
                 ref={chatRef}
-                className="flex-1 overflow-y-auto bg-white rounded-2xl border border-border-light p-6 mb-6 space-y-4 animate-step-transition"
+                className="flex-1 overflow-y-auto bg-white rounded-2xl border border-border-light p-6 mb-6 space-y-4"
                 role="log"
                 aria-live="polite"
-                aria-label="Demo conversation"
+                aria-label="AI conversation"
               >
                 {/* Messages */}
                 {messages.map((message) => (
-                  <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
-                    <div className={`max-w-[62%] md:max-w-[58%] px-4 py-3 rounded-2xl drop-shadow-sm ${
-                      message.type === 'user' 
-                        ? 'bg-teal text-white' 
-                        : 'bg-gray-50 text-text-primary'
-                    }`}>
-                      {message.text}
+                  <div key={message.id} className="animate-fade-in">
+                    <div className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      {/* AI avatar */}
+                      {message.type === 'ai' && (
+                        <div className="w-8 h-8 bg-teal rounded-full flex items-center justify-center flex-shrink-0 mr-3">
+                          <span className="text-white text-sm font-medium">S</span>
+                        </div>
+                      )}
+                      
+                      <div className={`max-w-[80%] px-4 py-3 rounded-2xl ${
+                        message.type === 'user' 
+                          ? 'bg-teal text-white rounded-tr-none' 
+                          : 'bg-gray-50 text-text-primary rounded-tl-none'
+                      }`}>
+                        {message.text}
+                        {message.confidence && message.confidence < 0.6 && (
+                          <p className="text-text-tertiary text-xs mt-1">
+                            Let me know if I misunderstood!
+                          </p>
+                        )}
+                      </div>
                     </div>
+                    
+                    {/* Inline CTA buttons for CTA messages */}
+                    {message.isCtaMessage && (
+                      <div className="flex justify-start ml-11 mt-3">
+                        <div className="flex gap-3">
+                          <button
+                            onClick={() => handleCTAClick('pilot')}
+                            className="px-4 py-2 bg-teal hover:bg-teal-hover text-white rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
+                            aria-label="Start 14-day pilot for $297"
+                          >
+                            Start Pilot ($297)
+                          </button>
+                          <button
+                            onClick={() => handleCTAClick('full')}
+                            className="px-4 py-2 border-2 border-teal text-teal hover:bg-teal hover:text-white rounded-lg font-medium transition-all duration-200"
+                            aria-label="Book full setup"
+                          >
+                            Full Setup
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
-                
-                {/* Status Cards (for booking confirmations) */}
-                {messages.length > 0 && messages[messages.length - 1]?.cards && (
-                  <div className="flex flex-wrap gap-2 justify-start animate-fade-in">
-                    {messages[messages.length - 1].cards?.map((card, index) => (
-                      <div 
-                        key={index}
-                        className="flex items-center gap-1 px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium"
-                        style={{ animationDelay: `${index * 150}ms` }}
-                      >
-                        <span>{card.icon}</span>
-                        <span>{card.text}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
                 
                 {/* Typing Indicator */}
                 {isTyping && (
                   <div className="flex justify-start">
-                    <div className="bg-gray-50 px-4 py-2 rounded-2xl">
+                    <div className="w-8 h-8 bg-teal rounded-full flex items-center justify-center flex-shrink-0 mr-3">
+                      <span className="text-white text-sm font-medium">S</span>
+                    </div>
+                    <div className="bg-gray-50 px-4 py-2 rounded-2xl rounded-tl-none">
                       <div className="flex gap-1">
                         <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                         <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -439,134 +500,107 @@ export default function InteractiveHero() {
                   </div>
                 )}
                 
-                {/* Voice transcript preview with better positioning */}
+                {/* Voice transcript preview */}
                 {isListening && currentTranscript && (
                   <div className="flex justify-end mb-2">
-                    <div className="max-w-[62%] md:max-w-[58%] px-4 py-2 bg-blue-50 border border-blue-200 text-blue-800 rounded-2xl text-sm italic drop-shadow-sm">
+                    <div className="max-w-[80%] px-4 py-2 bg-blue-50 border border-blue-200 text-blue-800 rounded-2xl text-sm italic">
                       {currentTranscript}...
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Action Chips with improved readability */}
-              {inputMode === 'chips' && getCurrentChips() && getCurrentChips()!.length > 0 && (
-                <div className="mb-6 pb-5 md:pb-6">
-                  <div className="flex flex-wrap gap-x-2.5 md:gap-x-3 gap-y-2">
-                    {getCurrentChips()!.map((chipLabel, index) => {
-                      const isSelected = selectedChip === chipLabel;
-                      const isPilotCTA = chipLabel.includes('Start 14-Day Pilot');
-                      
-                      return (
-                        <button
-                          key={index}
-                          onClick={() => handleChipClick(chipLabel)}
-                          className={`text-[13px] md:text-sm px-3 py-1.5 min-h-[28px] md:min-h-[32px] font-semibold rounded-full focus:outline-none focus:ring-2 focus:ring-teal focus:ring-opacity-50 transition-all duration-200 ${
-                            isSelected
-                              ? 'bg-teal text-white transform scale-105 shadow-lg'
-                              : isPilotCTA
-                              ? 'bg-teal hover:bg-teal-hover text-white shadow-md hover:shadow-lg'
-                              : 'bg-white/85 backdrop-blur-sm ring-1 ring-black/5 shadow-sm text-text-primary hover:ring-teal hover:shadow-md'
-                          }`}
-                          style={!isSelected && !isPilotCTA ? {animationDelay: `${index * 0.6}s`} : {}}
-                          aria-label={`Select ${chipLabel}`}
-                        >
-                          {chipLabel}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Text Input - when not using chips */}
-              {(inputMode === 'text' || inputMode === 'name' || inputMode === 'phone') && (
-                <div className="mb-4">
-                  <form onSubmit={handleTextSubmit}>
-                    <div className="flex gap-2">
-                      <input
-                        ref={inputRef}
-                        type={inputMode === 'phone' ? 'tel' : 'text'}
-                        value={textInput}
-                        onChange={(e) => setTextInput(e.target.value)}
-                        placeholder={getInputPlaceholder()}
-                        className="flex-1 px-4 py-3 border border-border-light rounded-lg focus:outline-none focus:ring-2 focus:ring-teal focus:border-transparent"
-                        aria-label={getInputPlaceholder()}
-                        required={inputMode === 'name' || inputMode === 'phone'}
-                      />
-                      
-                      {/* Voice button in text mode */}
-                      {isVoiceMode && voiceSupported && (
-                        <button
-                          type="button"
-                          onClick={toggleListening}
-                          className={`px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
-                            isListening
-                              ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse'
-                              : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-                          }`}
-                          aria-label={isListening ? 'Stop listening' : 'Start voice input'}
-                          title={isListening ? 'Release to stop' : 'Push to talk'}
-                        >
-                          🎤
-                        </button>
-                      )}
-                      
+              {/* Action Chips */}
+              <div className="mb-6">
+                <div className="flex flex-wrap gap-2">
+                  {currentChips.map((chipLabel, index) => {
+                    const isSelected = selectedChip === chipLabel;
+                    
+                    return (
                       <button
-                        type="submit"
-                        disabled={!textInput.trim()}
-                        className="px-6 py-3 bg-teal hover:bg-teal-hover disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors duration-200"
-                        aria-label="Send message"
+                        key={index}
+                        onClick={() => handleChipClick(chipLabel)}
+                        className={`text-sm px-4 py-2 font-medium rounded-full transition-all duration-200 ${
+                          isSelected
+                            ? 'bg-teal text-white transform scale-105 shadow-lg'
+                            : 'bg-white border border-gray-200 text-text-primary hover:border-teal hover:shadow-md'
+                        }`}
+                        style={{animationDelay: `${index * 100}ms`}}
+                        aria-label={`Select ${chipLabel}`}
                       >
-                        {inputMode === 'name' || inputMode === 'phone' ? 'Submit' : 'Send'}
+                        {chipLabel}
                       </button>
-                    </div>
-                  </form>
-                  
-                  {/* Voice transcript display */}
-                  {isListening && (
-                    <div className="mt-2 text-sm text-gray-600 italic">
-                      {currentTranscript ? `Listening: "${currentTranscript}"` : 'Listening... speak now'}
-                    </div>
-                  )}
+                    );
+                  })}
                 </div>
-              )}
+              </div>
 
-              {/* Bottom Rail CTAs - Show after booking success */}
-              {showCTARail && (
-                <div className="mt-auto animate-fade-in">
-                  <div className="flex flex-col sm:flex-row gap-3 bg-gray-50 p-6 -mx-6 -mb-6 rounded-b-2xl border-t border-border-light">
+              {/* Text Input */}
+              <div className="mb-4">
+                <form onSubmit={handleTextSubmit}>
+                  <div className="flex items-center gap-2 bg-white border-2 border-teal rounded-3xl px-4 py-3 shadow-sm transition-all duration-200">
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      value={textInput}
+                      onChange={(e) => setTextInput(e.target.value)}
+                      placeholder="Tell Sarah what you're interested in..."
+                      className="flex-1 text-text-primary placeholder-text-tertiary focus:outline-none text-sm"
+                      maxLength={200}
+                    />
+
+                    {/* Voice Button */}
+                    {voiceSupported && (
+                      <button
+                        type="button"
+                        onClick={toggleListening}
+                        className={`
+                          p-2 rounded-full transition-all duration-200 
+                          ${isListening 
+                            ? 'bg-red-500 text-white animate-pulse' 
+                            : 'bg-teal text-white shadow-md hover:bg-teal-hover'
+                          }
+                        `}
+                        title={isListening ? 'Stop listening' : 'Start voice input'}
+                      >
+                        {isListening ? (
+                          <div className="w-4 h-4 bg-white rounded-full" />
+                        ) : (
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3Z"/>
+                            <path d="M19 10v1a7 7 0 0 1-14 0v-1a1 1 0 0 1 2 0v1a5 5 0 0 0 10 0v-1a1 1 0 1 1 2 0Z"/>
+                            <path d="M12 18.5a1 1 0 0 1 1 1V22a1 1 0 1 1-2 0v-2.5a1 1 0 0 1 1-1Z"/>
+                          </svg>
+                        )}
+                      </button>
+                    )}
+
+                    {/* Send Button */}
                     <button
-                      onClick={() => handleCTAClick('pilot')}
-                      className="flex-1 py-3 px-6 bg-teal hover:bg-teal-hover text-white rounded-xl font-semibold shadow-lg transition-all duration-200 transform hover:scale-105"
-                      aria-label="Start 14-day pilot for $297"
+                      type="submit"
+                      disabled={!textInput.trim()}
+                      className="px-4 py-2 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed text-gray-600 rounded-2xl font-medium transition-all duration-200"
+                      title="Send message"
                     >
-                      Start 14-Day Pilot ($297)
-                      <div className="text-xs opacity-75 mt-1">(credited if you continue)</div>
-                    </button>
-                    <button
-                      onClick={() => handleCTAClick('full')}
-                      className="flex-1 py-3 px-6 bg-transparent border-2 border-border-default text-text-primary hover:bg-background-tertiary hover:border-teal rounded-xl font-semibold transition-all duration-200"
-                      aria-label="Book full setup"
-                    >
-                      Book Full Setup
+                      Send
                     </button>
                   </div>
-                  
-                  <div className="text-center text-xs text-text-tertiary mt-3">
-                    Live in 72 hours on a branded page · Optional website embed
+                </form>
+                
+                {/* Voice status */}
+                {isListening && (
+                  <div className="mt-2 text-sm text-gray-600 italic text-center">
+                    {currentTranscript ? `"${currentTranscript}"` : 'Listening... speak now'}
                   </div>
+                )}
+              </div>
+
+              {/* Footer microcopy */}
+              <div className="mt-auto">
+                <div className="text-center text-xs text-text-tertiary py-2">
+                  Live in 72 hours on a branded page · Optional website embed
                 </div>
-              )}
-              
-              {/* Footer microcopy when CTA rail not shown */}
-              {!showCTARail && (
-                <div className="mt-auto">
-                  <div className="text-center text-xs text-text-tertiary py-2">
-                    Live in 72 hours on a branded page · Optional website embed
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
           </div>
         </div>

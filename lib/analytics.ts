@@ -27,6 +27,7 @@ export type AnalyticsEvent =
   | 'voice_started'
   | 'checkout_success'
   | 'checkout_page_view'
+  | 'ai_chat_response'
   | 'form_submitted'
   | 'demo_auto_start'
   | 'avatar_interaction_start'

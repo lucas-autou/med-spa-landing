@@ -1,7 +1,8 @@
 import ShowreelHero from "@/components/ShowreelHero";
 import InteractiveHero from "@/components/InteractiveHero";
+import ConversionSection from "@/components/ConversionSection";
+import InteractiveDemo from "@/components/InteractiveDemo";
 import HowItWorks from "@/components/HowItWorks";
-import Features from "@/components/Features";
 import ProofDemo from "@/components/ProofDemo";
 import PricingTable from "@/components/PricingTable";
 import FAQ from "@/components/FAQ";
@@ -15,8 +16,11 @@ export default function Home() {
       <div id="interactive-demo">
         <InteractiveHero />
       </div>
+      
+      {/* New Conversion Flow - Right after demo */}
+      <ConversionSection />
+      
       <HowItWorks />
-      <Features />
       <ProofDemo />
       <PricingTable />
       <FAQ />

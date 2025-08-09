@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { trackEvent } from '@/lib/analytics';
 import { demoConfig, getDemoStep, getNextStep, type DemoStep } from '@/lib/demoConfig';
+import { classifyIntent, type Intent, type IntentResult } from '@/lib/intentMapping';
 
-export type DemoState = 'idle' | 'running' | 'completed' | 'freechat';
+export type DemoState = 'idle' | 'running' | 'completed' | 'freechat' | 'interactive';
 export type VideoState = 'idle' | 'listening' | 'talking_neutral' | 'talking_animated' | 'talking_empathetic' | 'ack_nod' | 'wave';
 
 interface DemoStore {
@@ -19,18 +20,30 @@ interface DemoStore {
   autoSelectedChip: string | null;
   isAutoSelecting: boolean;
   
+  // Interactive mode state
+  interactiveMode: boolean;
+  currentIntent: Intent | null;
+  currentContext: any;
+  voiceEnabled: boolean;
+  isRecording: boolean;
+  safetyFlags: string[];
+  
   // Conversation history tracking
   conversationHistory: Array<{ 
     type: 'user' | 'ai'; 
     text: string; 
     timestamp: number;
     stepId?: string;
+    intent?: Intent;
+    confidence?: number;
   }>;
   
   // Data storage
   demoData: {
     service?: string;
     volume?: string;
+    timeframe?: string;
+    concerns?: string[];
   };
   
   // Timers
@@ -41,13 +54,21 @@ interface DemoStore {
   startDemo: () => void;
   advanceToStep: (stepId: string) => void;
   selectChip: (chipLabel: string, isUserInitiated?: boolean) => void;
-  addConversationMessage: (type: 'user' | 'ai', message: string, stepId?: string) => void;
+  addConversationMessage: (type: 'user' | 'ai', message: string, stepId?: string, intent?: Intent, confidence?: number) => void;
   replayDemo: () => void;
   enableFreeChat: () => void;
   setVideoState: (state: VideoState) => void;
   setTyping: (typing: boolean) => void;
   clearTimers: () => void;
   reset: () => void;
+  
+  // Interactive mode actions
+  startInteractiveMode: () => void;
+  processUserMessage: (message: string, intentResult?: IntentResult) => void;
+  setVoiceEnabled: (enabled: boolean) => void;
+  setRecording: (recording: boolean) => void;
+  addSafetyFlag: (flag: string) => void;
+  clearSafetyFlags: () => void;
 }
 
 export const useDemoStore = create<DemoStore>((set, get) => ({
@@ -61,6 +82,15 @@ export const useDemoStore = create<DemoStore>((set, get) => ({
   showBookingCards: false,
   autoSelectedChip: null,
   isAutoSelecting: false,
+  
+  // Interactive mode initial state
+  interactiveMode: false,
+  currentIntent: null,
+  currentContext: {},
+  voiceEnabled: false,
+  isRecording: false,
+  safetyFlags: [],
+  
   conversationHistory: [],
   demoData: {},
   autoStartTimer: null,
@@ -239,14 +269,16 @@ export const useDemoStore = create<DemoStore>((set, get) => ({
     }
   },
 
-  addConversationMessage: (type: 'user' | 'ai', message: string, stepId?: string) => {
+  addConversationMessage: (type: 'user' | 'ai', message: string, stepId?: string, intent?: Intent, confidence?: number) => {
     const { conversationHistory } = get();
     set({
       conversationHistory: [...conversationHistory, { 
         type, 
         text: message, 
         timestamp: Date.now(),
-        stepId 
+        stepId,
+        intent,
+        confidence
       }]
     });
   },
@@ -300,8 +332,111 @@ export const useDemoStore = create<DemoStore>((set, get) => ({
       showBookingCards: false,
       autoSelectedChip: null,
       isAutoSelecting: false,
+      // Reset interactive state
+      interactiveMode: false,
+      currentIntent: null,
+      currentContext: {},
+      voiceEnabled: false,
+      isRecording: false,
+      safetyFlags: [],
       conversationHistory: [],
       demoData: {}
     });
+  },
+
+  // Interactive mode actions
+  startInteractiveMode: () => {
+    const { clearTimers } = get();
+    clearTimers();
+
+    set({
+      demoState: 'interactive',
+      interactiveMode: true,
+      videoState: 'wave',
+      currentStepId: 'interactive_greet'
+    });
+
+    // Add initial greeting
+    get().addConversationMessage(
+      'ai', 
+      "Hi! I'm Sarah, your virtual receptionist. I'm here to help book your appointment or answer questions. What can I do for you?",
+      'interactive_greet'
+    );
+
+    trackEvent('interactive_demo_start');
+  },
+
+  processUserMessage: (message: string, intentResult?: IntentResult) => {
+    const { addConversationMessage, setVideoState } = get();
+    
+    // Add user message to conversation
+    addConversationMessage('user', message, undefined, intentResult?.intent, intentResult?.confidence);
+    
+    // Process intent or classify if not provided
+    const result = intentResult || classifyIntent(message);
+    
+    // Handle safety flags
+    if (result.safetyFlag) {
+      get().addSafetyFlag('contraindications_detected');
+      set({ currentContext: { ...get().currentContext, safetyFlag: true } });
+    }
+    
+    // Update current intent and context
+    set({ 
+      currentIntent: result.intent,
+      currentContext: { 
+        ...get().currentContext, 
+        lastIntent: result.intent,
+        confidence: result.confidence,
+        entities: result.entities
+      },
+      videoState: 'ack_nod'
+    });
+
+    // Add AI response
+    setTimeout(() => {
+      setVideoState('talking_neutral');
+      addConversationMessage('ai', result.response);
+      
+      // Set video back to listening after response
+      setTimeout(() => {
+        setVideoState('listening');
+      }, 2000);
+    }, 500);
+
+    // Track intent
+    trackEvent(`interactive_intent_${result.intent}`);
+
+    // Show CTA if appropriate
+    if (result.intent === 'book_appointment' && !result.safetyFlag) {
+      setTimeout(() => {
+        set({ showCTARail: true });
+        trackEvent('cta_viewed');
+      }, 3000);
+    }
+  },
+
+  setVoiceEnabled: (enabled: boolean) => {
+    set({ voiceEnabled: enabled });
+    trackEvent(enabled ? 'voice_enabled' : 'voice_disabled');
+  },
+
+  setRecording: (recording: boolean) => {
+    set({ isRecording: recording });
+    if (recording) {
+      set({ videoState: 'listening' });
+    }
+  },
+
+  addSafetyFlag: (flag: string) => {
+    const { safetyFlags } = get();
+    if (!safetyFlags.includes(flag)) {
+      set({ safetyFlags: [...safetyFlags, flag] });
+      trackEvent(`safety_flag_${flag}`);
+    }
+  },
+
+  clearSafetyFlags: () => {
+    set({ safetyFlags: [] });
   }
 }));

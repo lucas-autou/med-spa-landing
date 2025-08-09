@@ -1,0 +1,207 @@
+@import '../styles/tokens.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html {
+  color-scheme: light;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Inter', 'Poppins', sans-serif;
+}
+
+body {
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  min-height: 100vh;
+  position: relative;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100vh;
+  background: var(--gradient-radial);
+  pointer-events: none;
+  z-index: 0;
+}
+
+main {
+  position: relative;
+  z-index: 1;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--color-teal);
+}
+
+/* Dark mode support */
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-gray-300);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gray-400);
+}
+
+/* Smooth animations */
+* {
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Video autoplay optimization */
+video {
+  object-fit: cover;
+  background: transparent;
+  border-radius: var(--rounded-lg, 16px);
+}
+
+/* Button base styles */
+@layer components {
+  .btn-primary {
+    @apply bg-teal hover:bg-teal-hover text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-200;
+  }
+  
+  .btn-secondary {
+    @apply bg-transparent border-2 border-border hover:bg-background-tertiary text-text-primary font-semibold py-3 px-6 rounded-lg transition-all duration-200;
+  }
+  
+  .btn-ghost {
+    @apply text-text-secondary hover:text-teal font-medium transition-colors duration-200;
+  }
+  
+  .card {
+    @apply bg-background-card border border-border-light rounded-lg shadow-md p-6;
+  }
+  
+  .card-hover {
+    @apply hover:shadow-lg hover:border-teal transition-all duration-300;
+  }
+  
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-out;
+  }
+  
+  .animate-chip-highlight {
+    animation: chip-highlight 2s ease-in-out infinite;
+  }
+  
+  .animate-chip-select {
+    animation: chip-select 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  
+  .animate-step-transition {
+    animation: step-transition 0.8s ease-out;
+  }
+}
+
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes chip-highlight {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(14, 165, 164, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(14, 165, 164, 0.1);
+  }
+}
+
+@keyframes chip-select {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(14, 165, 164, 0.4);
+  }
+  50% {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 12px rgba(14, 165, 164, 0.2);
+  }
+  100% {
+    transform: scale(1.05);
+    box-shadow: 0 4px 20px rgba(14, 165, 164, 0.3);
+  }
+}
+
+@keyframes step-transition {
+  0% {
+    opacity: 0.7;
+    transform: translateY(5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes chip-stagger {
+  0% {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Motion preferences handling */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .animate-fade-in,
+  .animate-chip-highlight,
+  .animate-chip-select,
+  .animate-step-transition {
+    animation: none !important;
+  }
+}

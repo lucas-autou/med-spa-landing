@@ -43,7 +43,7 @@ export default function PurchaseSlideOver({ isOpen, onClose, context, onKeepChat
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold text-text-primary">
-                Sarah's Ready to Work for You
+                Sarah&apos;s Ready to Work for You
               </h2>
               <p className="text-sm text-text-secondary mt-1">
                 Let me handle your bookings, questions, and leads 24/7 — starting today.

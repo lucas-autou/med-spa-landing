@@ -75,7 +75,7 @@ export default function SocialProof() {
             </div>
             
             <p className="text-sm text-gray-700 italic">
-              "{testimonial.quote}"
+              &ldquo;{testimonial.quote}&rdquo;
             </p>
           </div>
         ))}

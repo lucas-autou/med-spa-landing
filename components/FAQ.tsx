@@ -2,28 +2,42 @@
 
 import { useState } from 'react';
 import { trackEvent } from '@/lib/analytics';
+import PurchaseSlideOver from './PurchaseSlideOver';
 
 export default function FAQ() {
   const [openItem, setOpenItem] = useState<number | null>(null);
+  const [selectedChip, setSelectedChip] = useState<string | null>(null);
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
 
   const faqs = [
     {
       question: "Will Sarah work with my booking system?",
-      answer: "Yes! Sarah integrates seamlessly with Vagaro, Mindbody, Acuity, Square Appointments, Google Calendar, Fresha, Booker, and Calendly. We handle all the setup - you don't need to change any of your existing systems."
+      answer: "Yes! Sarah integrates seamlessly with Vagaro, Mindbody, Acuity, Square Appointments, Google Calendar, Fresha, Booker, and Calendly. We handle all the setup - you don't need to change any of your existing systems.",
+      chip: "Integrations"
     },
     {
-      question: "Can I change Sarah's script?",
-      answer: "Absolutely! While we provide optimized Med Spa scripts that convert, you can customize Sarah's responses, your service menu, pricing, and policies through a simple dashboard. Changes go live instantly."
+      question: "How long does setup take?",
+      answer: "Sarah goes live in 48-72 hours. After checkout, you'll fill out a quick onboarding form (takes 10 minutes), and our team handles everything else. Most clients are capturing leads by day 2.",
+      chip: "Setup time"
     },
     {
-      question: "How long to get set up?",
-      answer: "Sarah goes live in 48 hours or less. After checkout, you'll fill out a quick onboarding form (takes 10 minutes), and our team handles everything else. Most clients are capturing leads by day 2."
+      question: "What about refunds?",
+      answer: "We offer a 14-day money-back guarantee. If Sarah doesn't deliver value for your med spa, we'll refund your pilot fee - no questions asked. You keep all the leads generated during the trial.",
+      chip: "Refunds"
     },
     {
-      question: "Do I need new software?",
-      answer: "No new software needed! Sarah works through a simple embed code on your existing website (like adding a YouTube video). She connects to your current booking system - no need to learn or manage anything new."
+      question: "What's the monthly cost after the pilot?",
+      answer: "After your 14-day pilot or initial setup, Sarah is $199/month. This includes unlimited conversations, bookings, and all updates. No per-booking fees, no hidden costs. Cancel anytime.",
+      chip: "Monthly cost"
+    },
+    {
+      question: "Can I customize Sarah's script and voice?",
+      answer: "Absolutely! While we provide optimized Med Spa scripts that convert, you can customize Sarah's responses, your service menu, pricing, and policies through a simple dashboard. Changes go live instantly.",
+      chip: "Scripts/voice"
     }
   ];
+
+  const quickChips = ["Integrations", "Setup time", "Refunds", "Monthly cost", "Scripts/voice"];
 
   const toggleItem = (index: number) => {
     const newOpenItem = openItem === index ? null : index;
@@ -34,16 +48,43 @@ export default function FAQ() {
     }
   };
 
+  const handleChipClick = (chip: string) => {
+    setSelectedChip(chip);
+    const faqIndex = faqs.findIndex(faq => faq.chip === chip);
+    if (faqIndex !== -1) {
+      setOpenItem(faqIndex);
+      trackEvent('faq_chip_clicked', { chip });
+    }
+    setTimeout(() => setSelectedChip(null), 300);
+  };
+
   return (
-    <section className="py-20 px-4 bg-background-card/30" id="faq">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-text-primary mb-4">
-            Frequently Asked Questions
+    <section className="py-20 bg-background-secondary" id="faq">
+      <div className="max-w-4xl mx-auto px-4">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-text-primary mb-3">
+            Still have questions? Just ask Sarah.
           </h2>
-          <p className="text-xl text-text-secondary">
-            Everything you need to know about getting started
+          <p className="text-lg text-text-secondary mb-8">
+            Click a topic below or expand for details
           </p>
+          
+          {/* Quick access chips */}
+          <div className="flex flex-wrap justify-center gap-2 mb-8">
+            {quickChips.map((chip) => (
+              <button
+                key={chip}
+                onClick={() => handleChipClick(chip)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  selectedChip === chip
+                    ? 'bg-teal text-white transform scale-105'
+                    : 'bg-white border border-gray-200 text-text-primary hover:border-teal hover:shadow-md'
+                }`}
+              >
+                {chip}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="space-y-4">
@@ -86,33 +127,39 @@ export default function FAQ() {
           ))}
         </div>
 
-        {/* Contact for more questions */}
-        <div className="text-center mt-16 p-8 bg-white border border-border-light rounded-xl shadow-md">
+        {/* Sarah's nudge to convert */}
+        <div className="text-center mt-16 p-8 bg-gradient-to-br from-teal/5 to-white border border-teal/20 rounded-2xl shadow-lg">
+          <div className="flex justify-center mb-4">
+            <div className="w-16 h-16 bg-teal rounded-full flex items-center justify-center">
+              <span className="text-white text-2xl font-bold">S</span>
+            </div>
+          </div>
           <h3 className="text-xl font-semibold text-text-primary mb-3">
-            Still have questions?
+            I&apos;m Sarah — ready to work for your med spa
           </h3>
           <p className="text-text-secondary mb-6">
-            Get in touch with our team and we&apos;ll help you choose the right plan for your Med Spa.
+            Want me to start booking appointments for you? I can be live on your site in 72 hours.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a
-              href="mailto:support@medspareceptionist.com"
-              className="px-6 py-3 bg-teal hover:bg-teal/90 text-white font-medium rounded-lg transition-colors"
-            >
-              Email Support
-            </a>
-            <button
-              onClick={() => {
-                // This would typically open a chat widget or booking calendar
-                trackEvent('contact_request', { source: 'faq' });
-                alert('Chat support coming soon! Please email support@medspareceptionist.com for now.');
-              }}
-              className="px-6 py-3 border border-teal text-teal hover:bg-teal hover:text-white font-medium rounded-lg transition-colors"
-            >
-              Live Chat
-            </button>
-          </div>
+          <button
+            onClick={() => {
+              trackEvent('faq_cta_click');
+              setShowPurchaseModal(true);
+            }}
+            className="px-8 py-3 bg-teal hover:bg-teal-hover text-white font-semibold rounded-xl transition-colors shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+          >
+            Start Pilot — $297
+          </button>
+          <p className="text-xs text-text-tertiary mt-3">
+            14-day money-back guarantee • No contracts
+          </p>
         </div>
+
+        {/* Purchase Slide-over Modal */}
+        <PurchaseSlideOver 
+          isOpen={showPurchaseModal}
+          onClose={() => setShowPurchaseModal(false)}
+          context="regular"
+        />
       </div>
     </section>
   );

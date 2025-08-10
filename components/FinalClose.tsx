@@ -1,63 +1,132 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { ArrowRight } from 'lucide-react';
+import { useState } from 'react';
+import { trackEvent } from '@/lib/analytics';
+import PurchaseSlideOver from './PurchaseSlideOver';
 
 export default function FinalClose() {
-  const router = useRouter();
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+
+  const handleCTAClick = () => {
+    trackEvent('cta_click_pilot', { location: 'final_close' });
+    setShowPurchaseModal(true);
+  };
 
   return (
-    <section className="py-16 sm:py-20 bg-gradient-to-br from-teal-50 to-white">
-      <div className="container mx-auto px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          {/* Main Promise */}
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-text-primary mb-6">
-            Get more clients, never miss a lead — all without lifting a finger
-          </h2>
-          
-          <p className="text-lg sm:text-xl text-text-secondary mb-8">
-            Sarah works 24/7 so you don&apos;t have to. She&apos;s already booking appointments for 200+ med spas.
-          </p>
-
-          {/* Urgency Line */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-100 border border-orange-200 rounded-full mb-8">
-            <span className="text-orange-600 font-bold animate-pulse">🔥</span>
-            <span className="text-orange-800 font-semibold text-sm sm:text-base">
-              New client setups limited weekly — secure your spot
+    <section className="py-20 bg-gradient-to-br from-gray-900 to-gray-800 text-white relative overflow-hidden">
+      {/* Background pattern */}
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0" style={{
+          backgroundImage: `radial-gradient(circle at 20% 80%, rgba(20, 184, 166, 0.3) 0%, transparent 50%),
+                           radial-gradient(circle at 80% 20%, rgba(20, 184, 166, 0.3) 0%, transparent 50%)`,
+        }} />
+      </div>
+      
+      <div className="max-w-4xl mx-auto px-4 relative z-10">
+        <div className="text-center">
+          {/* Urgency Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-500/20 border border-red-500/30 rounded-full mb-6 animate-pulse">
+            <span className="w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
+            <span className="text-red-400 font-semibold text-sm">
+              Limited spots remaining for January setup
             </span>
           </div>
 
+          {/* Main Promise */}
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6">
+            Ready to let Sarah work while you sleep?
+          </h2>
+          
+          <p className="text-lg sm:text-xl text-gray-300 mb-10 max-w-2xl mx-auto">
+            Every night you&apos;re closed, potential clients are trying to book. 
+            Sarah captures them all — starting in just 72 hours.
+          </p>
+
+          {/* Testimonial */}
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 mb-10 max-w-2xl mx-auto border border-white/20">
+            <p className="text-lg italic mb-4">
+              &ldquo;Game-changer! Our virtual receptionist captured 40% more leads in the first month. 
+              Sarah books appointments while I sleep.&rdquo;
+            </p>
+            <p className="text-sm text-gray-400">
+              — Sarah Martinez, Beverly Hills Aesthetics
+            </p>
+          </div>
+
           {/* Final Stats */}
-          <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto mb-10">
-            <div className="bg-white rounded-xl p-4 shadow-md">
-              <p className="text-2xl font-bold text-teal-600">40%</p>
-              <p className="text-xs text-text-secondary">More bookings</p>
+          <div className="grid grid-cols-3 gap-4 max-w-xl mx-auto mb-10">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+              <p className="text-3xl font-bold text-teal-400">21</p>
+              <p className="text-xs text-gray-400">New bookings</p>
+              <p className="text-xs text-gray-500">First month</p>
             </div>
-            <div className="bg-white rounded-xl p-4 shadow-md">
-              <p className="text-2xl font-bold text-teal-600">24/7</p>
-              <p className="text-xs text-text-secondary">Always on</p>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+              <p className="text-3xl font-bold text-teal-400">$9.4k</p>
+              <p className="text-xs text-gray-400">Extra revenue</p>
+              <p className="text-xs text-gray-500">Monthly avg</p>
             </div>
-            <div className="bg-white rounded-xl p-4 shadow-md">
-              <p className="text-2xl font-bold text-teal-600">48h</p>
-              <p className="text-xs text-text-secondary">Setup time</p>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+              <p className="text-3xl font-bold text-teal-400">3sec</p>
+              <p className="text-xs text-gray-400">Response time</p>
+              <p className="text-xs text-gray-500">24/7 availability</p>
             </div>
           </div>
 
-          {/* Final CTA Button */}
-          <button
-            onClick={() => router.push('/checkout-pilot')}
-            className="inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold rounded-xl bg-teal-600 text-white hover:bg-teal-700 transition-all duration-200 shadow-xl hover:shadow-2xl hover:-translate-y-0.5 group"
-          >
-            Start My 48-Hour Setup
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </button>
+          {/* Final CTA */}
+          <div className="space-y-4">
+            <button
+              onClick={handleCTAClick}
+              className="inline-flex items-center justify-center gap-2 px-10 py-4 text-lg font-bold rounded-xl bg-gradient-to-r from-teal to-teal-hover text-white hover:from-teal-hover hover:to-teal transition-all duration-200 shadow-2xl hover:shadow-teal/50 hover:-translate-y-0.5 group"
+            >
+              Start Pilot — $297
+              <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+            
+            <div className="text-sm text-gray-400">
+              <button
+                onClick={() => {
+                  trackEvent('see_plans_click', { location: 'final_close' });
+                  setShowPurchaseModal(true);
+                }}
+                className="underline hover:text-white transition-colors"
+              >
+                See plans
+              </button>
+            </div>
+          </div>
 
-          {/* Trust Line */}
-          <p className="text-sm text-text-tertiary mt-6">
-            Join med spas in Miami, LA, Dallas & NYC • Cancel anytime • 14-day money back guarantee
-          </p>
+          {/* Reassurance Strip */}
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-gray-400">
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-teal-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              Live in 72h
+            </div>
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-teal-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              No system change
+            </div>
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-teal-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              30-day money-back
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Purchase Slide-over Modal */}
+      <PurchaseSlideOver 
+        isOpen={showPurchaseModal}
+        onClose={() => setShowPurchaseModal(false)}
+        context="regular"
+      />
     </section>
   );
 }

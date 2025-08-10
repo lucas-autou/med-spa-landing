@@ -1,13 +1,8 @@
-import ShowreelHero from "@/components/ShowreelHero";
 import InteractiveHero from "@/components/InteractiveHero";
-import SocialProof from "@/components/SocialProof";
+import MedSpasLoveSarah from "@/components/MedSpasLoveSarah";
 import HowItWorks from "@/components/HowItWorks";
-import MoneyBackBanner from "@/components/MoneyBackBanner";
-import SecondCTA from "@/components/SecondCTA";
-import WhySarahWorks from "@/components/WhySarahWorks";
 import IntegrationsRow from "@/components/IntegrationsRow";
 import OfferPricing from "@/components/OfferPricing";
-import SocialProofSection from "@/components/SocialProofSection";
 import FAQ from "@/components/FAQ";
 import FinalClose from "@/components/FinalClose";
 import StickyAssistant from "@/components/StickyAssistant";
@@ -18,40 +13,22 @@ export default function Home() {
       {/* 1. Interactive Hero - Primary experience */}
       <InteractiveHero />
       
-      {/* New sections right after the demo */}
-      <div className="max-w-6xl mx-auto px-4">
-        {/* 2. Social Proof Row */}
-        <SocialProof />
-        
-        {/* 3. How It Works Visual */}
-        <HowItWorks />
-        
-        {/* 4. Money-Back Guarantee Banner */}
-        <MoneyBackBanner />
-        
-        {/* 5. Second CTA */}
-        <SecondCTA />
-      </div>
+      {/* 2. Strong Social Proof - "Med Spas Love Sarah" */}
+      <MedSpasLoveSarah />
       
-      {/* Original sections continue below */}
-      {/* <ShowreelHero /> */}
+      {/* 3. How It Works - Simple 3-step process */}
+      <HowItWorks />
       
-      {/* 6. Why Sarah Works (Pain/Solution) */}
-      <WhySarahWorks />
-      
-      {/* 4. Integrations Row */}
+      {/* 4. Integrations - Trust & objection handling */}
       <IntegrationsRow />
       
-      {/* 5. Offer & Pricing */}
+      {/* 5. Conversion Push - Pricing with guarantee */}
       <OfferPricing />
       
-      {/* 6. Social Proof */}
-      <SocialProofSection />
-      
-      {/* 7. FAQ */}
+      {/* 6. FAQ - Ask Sarah section */}
       <FAQ />
       
-      {/* 8. Final Close */}
+      {/* 7. Final Close - Urgency CTA */}
       <FinalClose />
       
       {/* Sticky Assistant (Mobile) */}

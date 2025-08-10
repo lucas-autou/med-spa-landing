@@ -7,9 +7,11 @@ import { trackEvent } from '@/lib/analytics';
 interface PurchaseSlideOverProps {
   isOpen: boolean;
   onClose: () => void;
+  context?: 'scripted' | 'regular' | null;
+  onKeepChatting?: () => void;
 }
 
-export default function PurchaseSlideOver({ isOpen, onClose }: PurchaseSlideOverProps) {
+export default function PurchaseSlideOver({ isOpen, onClose, context, onKeepChatting }: PurchaseSlideOverProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState<'pilot' | 'full' | null>(null);
 
@@ -28,188 +30,155 @@ export default function PurchaseSlideOver({ isOpen, onClose }: PurchaseSlideOver
 
   return (
     <>
-      {/* Background overlay */}
+      {/* Background overlay - lighter to keep chat visible */}
       <div 
-        className="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity duration-300"
+        className="fixed inset-0 bg-black bg-opacity-30 z-40 transition-opacity duration-300"
         onClick={onClose}
       />
 
       {/* Slide-over panel */}
-      <div className="fixed inset-y-0 right-0 max-w-lg w-full bg-white shadow-2xl z-50 transform transition-transform duration-300 overflow-y-auto">
+      <div className="fixed inset-y-0 right-0 max-w-lg w-full bg-gray-50 shadow-2xl z-50 transform transition-transform duration-300 overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4">
+        <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-5">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-text-primary">
-              Get Sarah Live for Your Med Spa
-            </h2>
+            <div>
+              <h2 className="text-2xl font-bold text-text-primary">
+                Sarah's Ready to Work for You
+              </h2>
+              <p className="text-sm text-text-secondary mt-1">
+                Let me handle your bookings, questions, and leads 24/7 — starting today.
+              </p>
+            </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors ml-4 flex-shrink-0"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
-          <p className="text-sm text-orange-600 font-medium mt-1">
-            🔥 Live in 48 hours • Limited spots weekly
-          </p>
         </div>
 
         {/* Content */}
-        <div className="px-6 py-6">
-          {/* Mini social proof */}
-          <div className="bg-teal-50 rounded-xl p-4 mb-6 text-center">
-            <p className="text-sm text-teal-700 font-medium mb-2">
-              Join 200+ med spas already using Sarah
-            </p>
-            <div className="flex justify-center items-center gap-4 text-xs text-teal-600">
-              <span>📈 40% more leads</span>
-              <span>💰 $9K+ monthly ROI</span>
-              <span>⏰ 24/7 availability</span>
+        <div className="px-6 py-8">
+          {/* Context-aware micro-proof for scripted demo */}
+          {context === 'scripted' && (
+            <div className="bg-teal-50 border border-teal-200 rounded-xl p-4 mb-6">
+              <p className="text-sm text-teal-700 font-medium">
+                ✨ She just booked you an appointment in the demo — now imagine that for your real clients
+              </p>
             </div>
-          </div>
+          )}
 
           {/* Pricing Options */}
-          <div className="space-y-4">
-            {/* Pilot Option */}
-            <div className="border-2 border-teal-500 rounded-2xl p-6 relative bg-gradient-to-br from-teal-50 to-white">
-              <div className="absolute -top-3 left-4 bg-teal-500 text-white px-3 py-1 rounded-full text-xs font-medium">
+          <div className="space-y-6">
+            {/* Pilot Option - Main Focus */}
+            <div className="bg-white rounded-2xl p-8 shadow-lg relative">
+              <div className="absolute -top-3 left-6 bg-teal-500 text-white px-4 py-1.5 rounded-full text-sm font-bold">
                 MOST POPULAR
               </div>
-              <div className="mb-4">
-                <h3 className="text-lg font-bold text-text-primary">14-Day Pilot</h3>
-                <p className="text-sm text-text-secondary">Test everything risk-free</p>
-              </div>
-              <div className="mb-4">
-                <div className="flex items-baseline">
-                  <span className="text-3xl font-bold text-text-primary">$297</span>
-                  <span className="text-sm text-text-secondary ml-2">one-time</span>
-                </div>
-                <div className="bg-green-100 border border-green-200 rounded-lg p-2 mt-2">
-                  <p className="text-xs text-green-700 font-medium">
-                    💡 Full $297 credit applied if you upgrade
+              
+              <h3 className="text-2xl font-bold text-text-primary mb-2">Get Sarah Working Today</h3>
+              <p className="text-base text-text-secondary mb-6">14-day pilot program</p>
+              
+              <div className="mb-6">
+                <span className="text-5xl font-bold text-text-primary">$297</span>
+                <span className="text-lg text-text-secondary ml-2">one-time</span>
+                <div className="mt-3 space-y-1">
+                  <p className="text-sm text-green-600 font-semibold">
+                    ✓ Full credit if you upgrade
+                  </p>
+                  <p className="text-sm text-text-secondary">
+                    ✓ We do all setup for you
                   </p>
                 </div>
               </div>
-              <ul className="space-y-2 mb-6">
-                <li className="flex items-center text-sm">
-                  <svg className="w-4 h-4 text-teal-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              
+              <ul className="space-y-3 mb-8">
+                <li className="flex items-center text-base">
+                  <svg className="w-5 h-5 text-teal-500 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  Complete 14-day access
+                  <span className="font-medium">14-day access</span>
                 </li>
-                <li className="flex items-center text-sm">
-                  <svg className="w-4 h-4 text-teal-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <li className="flex items-center text-base">
+                  <svg className="w-5 h-5 text-teal-500 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  Full setup & configuration
+                  <span className="font-medium">Full setup</span>
                 </li>
-                <li className="flex items-center text-sm">
-                  <svg className="w-4 h-4 text-teal-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <li className="flex items-center text-base">
+                  <svg className="w-5 h-5 text-teal-500 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  Real lead capture & testing
+                  <span className="font-medium">Real leads</span>
                 </li>
-                <li className="flex items-center text-sm">
-                  <svg className="w-4 h-4 text-teal-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <li className="flex items-center text-base">
+                  <svg className="w-5 h-5 text-teal-500 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  30-day money-back guarantee
+                  <span className="font-medium">Money-back</span>
                 </li>
               </ul>
+              
               <button
                 onClick={() => handlePurchase('pilot')}
                 disabled={isLoading === 'pilot'}
-                className="w-full py-3 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-xl transition-colors disabled:opacity-50"
+                className="w-full py-4 bg-teal-500 hover:bg-teal-600 text-white text-lg font-bold rounded-xl transition-all hover:shadow-lg disabled:opacity-50"
               >
-                {isLoading === 'pilot' ? 'Loading...' : 'Start Pilot - $297'}
+                {isLoading === 'pilot' ? 'Loading...' : 'Activate Sarah for My Business'}
               </button>
+              
+              {/* Social proof right under CTA */}
+              <p className="text-center text-sm text-text-secondary mt-4 font-medium">
+                Join 200+ med spas using Sarah
+              </p>
             </div>
 
-            {/* Full Setup Option */}
-            <div className="border border-gray-200 rounded-2xl p-6 bg-white">
-              <div className="mb-4">
-                <h3 className="text-lg font-bold text-text-primary">Full Setup</h3>
-                <p className="text-sm text-text-secondary">Complete implementation</p>
-              </div>
-              <div className="mb-4">
-                <div className="flex items-baseline">
-                  <span className="text-3xl font-bold text-text-primary">$297</span>
-                  <span className="text-sm text-text-secondary ml-2">setup</span>
-                </div>
-                <div className="flex items-baseline mt-1">
-                  <span className="text-xl font-semibold text-text-primary">$199</span>
-                  <span className="text-sm text-text-secondary ml-1">/month</span>
-                </div>
-              </div>
-              <ul className="space-y-2 mb-6">
-                <li className="flex items-center text-sm">
-                  <svg className="w-4 h-4 text-teal-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  Everything from Pilot
-                </li>
-                <li className="flex items-center text-sm">
-                  <svg className="w-4 h-4 text-teal-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  Priority support & training
-                </li>
-                <li className="flex items-center text-sm">
-                  <svg className="w-4 h-4 text-teal-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  Advanced analytics & insights
-                </li>
-                <li className="flex items-center text-sm">
-                  <svg className="w-4 h-4 text-teal-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  White-label options available
-                </li>
-              </ul>
+            {/* Skip to Full Setup Link */}
+            <div className="text-center">
+              <p className="text-sm text-text-secondary mb-2">Ready to go all-in?</p>
               <button
                 onClick={() => handlePurchase('full')}
                 disabled={isLoading === 'full'}
-                className="w-full py-3 bg-gray-900 hover:bg-gray-800 text-white font-semibold rounded-xl transition-colors disabled:opacity-50"
+                className="text-teal-600 hover:text-teal-700 text-sm font-medium underline transition-colors"
               >
-                {isLoading === 'full' ? 'Loading...' : 'Get Full Setup'}
+                Get full setup for $997 + $97/mo
               </button>
             </div>
           </div>
 
-          {/* Trust indicators */}
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <div className="flex justify-center items-center space-x-6 text-xs text-text-secondary">
-              <div className="flex items-center">
-                <svg className="w-3 h-3 mr-1 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                Secure Payment
-              </div>
-              <div className="flex items-center">
-                <svg className="w-3 h-3 mr-1 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                Money-Back Guarantee
-              </div>
-              <div className="flex items-center">
-                <svg className="w-3 h-3 mr-1 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                Live in 48 Hours
-              </div>
-            </div>
+          {/* Trust badges */}
+          <div className="mt-8 flex justify-center items-center gap-6 text-sm text-text-secondary">
+            <span className="flex items-center gap-1">
+              <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              Live in 48h
+            </span>
+            <span className="flex items-center gap-1">
+              <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              Cancel anytime
+            </span>
           </div>
 
-          {/* Final testimonial */}
-          <div className="mt-6 bg-gray-50 rounded-xl p-4 text-center">
-            <p className="text-sm italic text-text-primary mb-2">
-              &ldquo;ROI was immediate. Sarah paid for herself in the first week.&rdquo;
-            </p>
-            <p className="text-xs text-text-secondary">— Dr. Martinez, Miami</p>
-          </div>
+          {/* Keep chatting button for scripted context */}
+          {context === 'scripted' && onKeepChatting && (
+            <div className="mt-6">
+              <button
+                onClick={() => {
+                  onClose();
+                  onKeepChatting();
+                }}
+                className="w-full py-3 bg-white border-2 border-gray-200 hover:border-teal-500 text-text-primary hover:text-teal-600 font-medium rounded-xl transition-all"
+              >
+                Keep Chatting with Sarah
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </>

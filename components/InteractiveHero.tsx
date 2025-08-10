@@ -47,12 +47,14 @@ declare global {
 // Message interface for AI chat
 interface ChatMessage {
   id: string;
-  type: 'user' | 'ai';
+  type: 'user' | 'ai' | 'system' | 'booking' | 'offer';
   text: string;
+  subtext?: string;
   timestamp: number;
   intent?: string;
   confidence?: number;
   isCtaMessage?: boolean;
+  isTyping?: boolean;
 }
 
 export default function InteractiveHero() {
@@ -63,8 +65,8 @@ export default function InteractiveHero() {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   
   // Video and UI state
-  const [videoLoaded, setVideoLoaded] = useState(true);
-  const [videoState, setVideoState] = useState<'idle' | 'listening' | 'talking'>('idle');
+  const [videoLoaded, setVideoLoaded] = useState(false);
+  const [videoState, setVideoState] = useState<'idle' | 'listening' | 'talking' | 'wave'>('idle');
   
   // AI Chat state
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -74,8 +76,12 @@ export default function InteractiveHero() {
   
   // Purchase slide-over state
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [scriptedContext, setScriptedContext] = useState<'scripted' | 'regular' | null>(null);
+  const [offerClicked, setOfferClicked] = useState(false);
+  const [followUpTimer, setFollowUpTimer] = useState<NodeJS.Timeout | null>(null);
   const [interactionCount, setInteractionCount] = useState(0);
   const [modalWasDismissed, setModalWasDismissed] = useState(false);
+  const [demoContext, setDemoContext] = useState<'scripted' | 'regular' | null>(null);
   
   // Voice interface
   const [isListening, setIsListening] = useState(false);
@@ -84,17 +90,46 @@ export default function InteractiveHero() {
   
   // Input state
   const [textInput, setTextInput] = useState('');
+  
+  // Scripted demo state
+  const [isScriptedDemo, setIsScriptedDemo] = useState(false);
+  const [scriptStep, setScriptStep] = useState(0);
+  const [showDemoButton, setShowDemoButton] = useState(true);
+  const [isAIMode, setIsAIMode] = useState(false);
+  const [showFloatingCTA, setShowFloatingCTA] = useState(false);
 
-  // Add initial greeting message
+  // Add initial greeting message with auto-start
   useEffect(() => {
     const initialMessage: ChatMessage = {
       id: '1',
       type: 'ai',
-      text: "Hi! I can help you book Botox, check pricing, or reschedule. What do you need?",
+      text: "Hi! I'm Sarah, your virtual receptionist. I'm here 24/7 to help book appointments and answer questions for your med spa.",
       timestamp: Date.now()
     };
     setMessages([initialMessage]);
+    setVideoState('wave');
     trackEvent('hero_view');
+    
+    // Return to idle after wave
+    setTimeout(() => {
+      setVideoState('idle');
+    }, 2000);
+    
+    // Debug video element
+    setTimeout(() => {
+      if (videoRef.current) {
+        console.log('Video element found:', {
+          src: videoRef.current.src,
+          readyState: videoRef.current.readyState,
+          networkState: videoRef.current.networkState,
+          error: videoRef.current.error,
+          videoWidth: videoRef.current.videoWidth,
+          videoHeight: videoRef.current.videoHeight
+        });
+      } else {
+        console.error('Video element not found!');
+      }
+    }, 1000);
   }, []);
 
   // AI Chat function
@@ -241,8 +276,13 @@ export default function InteractiveHero() {
       return newCount;
     });
     
-    handleAIMessage(input);
-  }, [handleAIMessage]);
+    // In AI mode or after scripted demo, always use AI
+    if (isAIMode || (!isScriptedDemo && interactionCount > 0)) {
+      handleAIMessage(input);
+    } else {
+      handleAIMessage(input);
+    }
+  }, [handleAIMessage, isAIMode, isScriptedDemo, interactionCount]);
 
   // Handle voice input
   const handleVoiceInput = useCallback((transcript: string) => {
@@ -306,14 +346,21 @@ export default function InteractiveHero() {
 
   // Video state mapping
   const getVideoSrc = () => {
-    switch (videoState) {
-      case 'listening':
-        return '/videos/listening.mp4';
-      case 'talking':
-        return '/videos/talking_neutral.mp4';
-      default:
-        return '/videos/idle.mp4';
-    }
+    const src = (() => {
+      switch (videoState) {
+        case 'listening':
+          return '/videos/listening.mp4';
+        case 'talking':
+          return '/videos/talking_neutral.mp4';
+        case 'wave':
+          return '/videos/wave.mp4';
+        case 'idle':
+        default:
+          return '/videos/idle.mp4';
+      }
+    })();
+    console.log('Current video state:', videoState, 'Source:', src);
+    return src;
   };
 
   // Handle chip selection
@@ -369,6 +416,131 @@ export default function InteractiveHero() {
       router.push('/checkout-full');
     }
   };
+  
+  // Scripted demo flow
+  const startScriptedDemo = () => {
+    trackEvent('demo_start' as any);
+    setShowDemoButton(false);
+    setIsScriptedDemo(true);
+    setMessages([]);
+    setVideoState('talking');  // Start with talking immediately
+    
+    // Scripted conversation steps
+    const scriptedSteps = [
+      { delay: 100, type: 'ai', text: "Hi! Welcome to Glow Med Spa. I'm Sarah, your virtual receptionist. How can I help you today?" },
+      { delay: 2500, type: 'user', text: "I'd like to book a Botox appointment" },
+      { delay: 1500, type: 'ai', text: "Perfect! I can help you book your Botox appointment. When works best for you?" },
+      { delay: 2500, type: 'user', text: "Do you have anything available this week?" },
+      { delay: 1500, type: 'ai', text: "Let me check our availability... I have Thursday at 2pm or Friday at 10am. Which would you prefer?" },
+      { delay: 2500, type: 'user', text: "Thursday at 2pm works great" },
+      { delay: 1500, type: 'ai', text: "Excellent! You're all set for Thursday at 2pm for your Botox appointment. You'll receive a confirmation text shortly with all the details." },
+      { delay: 2000, type: 'booking', text: "✅ Appointment Confirmed" },
+      { delay: 500, type: 'system', text: "📱 SMS confirmation sent" },
+      { delay: 500, type: 'system', text: "📅 Added to calendar" },
+      { delay: 2000, type: 'ai', text: "All set for Thursday at 2pm! You'll get a confirmation text shortly.\n\nBy the way, I can handle bookings like this for your real clients — 24/7. Most med spas start with my 14-day pilot to try me risk-free." },
+      { delay: 500, type: 'offer', text: "See How the Pilot Works", subtext: "Full setup in 72h — works with your booking system" }
+    ];
+    
+    let currentDelay = 0;
+    scriptedSteps.forEach((step, index) => {
+      currentDelay += step.delay;
+      
+      setTimeout(() => {
+        if (step.type === 'ai') {
+          setVideoState('talking');
+          setIsTyping(true);
+          
+          setTimeout(() => {
+            const aiMessage: ChatMessage = {
+              id: `scripted_${index}`,
+              type: 'ai',
+              text: step.text,
+              timestamp: Date.now()
+            };
+            setMessages(prev => [...prev, aiMessage]);
+            setIsTyping(false);
+            
+            // Return to idle after talking
+            setTimeout(() => {
+              setVideoState('idle');
+            }, 1500);
+          }, 500);
+          
+        } else if (step.type === 'user') {
+          // Simulate user typing
+          setVideoState('listening');
+          const userMessage: ChatMessage = {
+            id: `scripted_${index}`,
+            type: 'user',
+            text: step.text,
+            timestamp: Date.now()
+          };
+          
+          // Type out the message character by character
+          let typedText = '';
+          const chars = step.text.split('');
+          chars.forEach((char, charIndex) => {
+            setTimeout(() => {
+              typedText += char;
+              setTextInput(typedText);
+              
+              if (charIndex === chars.length - 1) {
+                // Message complete, add to chat
+                setTimeout(() => {
+                  setMessages(prev => [...prev, userMessage]);
+                  setTextInput('');
+                }, 200);
+              }
+            }, charIndex * 50);
+          });
+          
+        } else if (step.type === 'booking' || step.type === 'system') {
+          // Show confirmation cards
+          const systemMessage: ChatMessage = {
+            id: `scripted_${index}`,
+            type: step.type as 'booking' | 'system',
+            text: step.text,
+            timestamp: Date.now()
+          };
+          setMessages(prev => [...prev, systemMessage]);
+        } else if (step.type === 'offer') {
+          // Show offer CTA button
+          const offerMessage: ChatMessage = {
+            id: `scripted_${index}`,
+            type: 'offer',
+            text: step.text,
+            subtext: step.subtext,
+            timestamp: Date.now()
+          };
+          setMessages(prev => [...prev, offerMessage]);
+          
+          // Set follow-up timer if offer is not clicked
+          const timer = setTimeout(() => {
+            if (!offerClicked) {
+              const followUpMessage: ChatMessage = {
+                id: `follow-up-1`,
+                type: 'ai',
+                text: "Want me to show you exactly how the pilot works?",
+                timestamp: Date.now()
+              };
+              setMessages(prev => [...prev, followUpMessage]);
+              
+              setTimeout(() => {
+                const followUpOffer: ChatMessage = {
+                  id: `follow-up-offer`,
+                  type: 'offer',
+                  text: "Yes, show me",
+                  timestamp: Date.now()
+                };
+                setMessages(prev => [...prev, followUpOffer]);
+              }, 500);
+            }
+          }, 10000); // 10 seconds delay
+          setFollowUpTimer(timer);
+        }
+      }, currentDelay);
+    });
+  };
 
   // Handle modal close with dismissal tracking
   const handleModalClose = () => {
@@ -376,30 +548,66 @@ export default function InteractiveHero() {
     setModalWasDismissed(true);
     // trackEvent('purchase_modal_dismissed', { interactions: interactionCount });
   };
+  
+  // Handle keep chatting - switch to AI mode
+  const handleKeepChatting = () => {
+    setIsAIMode(true);
+    setShowFloatingCTA(true);
+    setVideoState('idle');
+    trackEvent('keep_chatting_selected' as any);
+    
+    // Add a message to continue the conversation
+    const continueMessage: ChatMessage = {
+      id: Date.now().toString() + '_continue',
+      type: 'ai',
+      text: "Great! I'm here to answer any questions you have about our services or how I can help your med spa. What would you like to know?",
+      timestamp: Date.now()
+    };
+    setMessages(prev => [...prev, continueMessage]);
+    
+    // Update chips for AI mode
+    setCurrentChips(['How does Sarah work?', 'Pricing details', 'Setup process']);
+  };
 
   return (
-    <section id="hero" className="min-h-screen bg-background-secondary">
-      <div className="container mx-auto px-4 py-6 md:py-8 lg:py-12 max-w-6xl">
-        {/* Hero Content */}
-        <div className="mb-8 text-center lg:text-left max-w-4xl mx-auto">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-text-primary mb-4">
+    <section id="hero" className="min-h-screen bg-gradient-to-b from-background-primary to-background-secondary">
+      <div className="container mx-auto px-4 py-4 md:py-6 lg:py-8 max-w-7xl">
+        {/* Hero Content - Smaller, integrated */}
+        <div className="mb-6 text-center max-w-5xl mx-auto">
+          <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-text-primary mb-3">
             Never Miss a Booking
           </h1>
-          <p className="text-xl text-text-secondary">
-            Your 24/7 virtual receptionist — answering, qualifying, and booking clients even after hours.
+          <p className="text-lg md:text-xl text-text-secondary mb-4">
+            Sarah answers, qualifies, and books clients for you 24/7 — even after hours.
           </p>
+          
+          {/* Prominent Demo Button */}
+          {showDemoButton && (
+            <div className="animate-fade-in">
+              <button
+                onClick={startScriptedDemo}
+                className="inline-flex items-center gap-3 px-8 py-4 bg-teal hover:bg-teal-hover text-white font-semibold text-lg rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 animate-pulse-soft"
+              >
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                </svg>
+                Meet Sarah — Watch Her Book a Client
+                <span className="text-sm font-normal opacity-90">(20s Demo)</span>
+              </button>
+              <p className="text-sm text-text-tertiary mt-2">See her in action with a real booking flow</p>
+            </div>
+          )}
         </div>
 
-        {/* Unified Interactive Container */}
-        <div className="bg-white rounded-3xl border border-border-default shadow-2xl overflow-hidden max-w-5xl mx-auto">
+        {/* Unified Interactive Container - Larger for WOW */}
+        <div className="bg-white rounded-3xl border border-border-default shadow-2xl overflow-hidden max-w-7xl mx-auto">
           {/* Mobile: Stack vertically, Desktop: Side by side */}
           <div className="grid grid-cols-1 lg:grid-cols-2 lg:gap-0">
           
             {/* Left: Avatar Video */}
             <div className="relative">
-              {/* Video Container */}
-              <div className="relative w-full h-full min-h-[500px] md:min-h-[600px] lg:min-h-[650px]">
-                <div className="w-full h-full rounded-l-3xl lg:rounded-r-none overflow-hidden bg-background-card">
+              {/* Video Container - Larger for impact */}
+              <div className="relative w-full min-h-[500px] md:min-h-[650px] lg:min-h-[750px] xl:min-h-[800px] bg-gray-100 rounded-l-3xl lg:rounded-r-none overflow-hidden">
                   <video
                     ref={videoRef}
                     src={getVideoSrc()}
@@ -408,23 +616,23 @@ export default function InteractiveHero() {
                     loop
                     muted
                     playsInline
-                    className="w-full h-full object-cover"
-                    onLoadedData={() => setVideoLoaded(true)}
+                    className="absolute inset-0 w-full h-full object-cover z-0"
+                    onLoadedData={() => {
+                      console.log('Video loaded:', getVideoSrc());
+                      setVideoLoaded(true);
+                    }}
                     onCanPlay={() => setVideoLoaded(true)}
-                    onLoadStart={() => setVideoLoaded(false)}
+                    onError={(e) => {
+                      console.error('Video error:', e, 'Source:', getVideoSrc());
+                    }}
                     aria-label="Virtual assistant avatar"
                   />
                   {/* Stronger bottom gradient for contrast */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/24 to-transparent pointer-events-none" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none z-10" />
                   
-                  {!videoLoaded && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-background-card">
-                      <div className="animate-pulse text-text-secondary">Loading assistant...</div>
-                    </div>
-                  )}
                   
                   {/* Sarah Label */}
-                  <div className="absolute top-3 left-3">
+                  <div className="absolute top-3 left-3 z-20">
                     <div className="flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full">
                       <span className="text-xs text-white font-medium">Sarah — AI</span>
                       <span className="text-xs">·</span>
@@ -433,7 +641,7 @@ export default function InteractiveHero() {
                   </div>
                   
                   {/* Unmute Button with improved hit area */}
-                  <div className="absolute top-3 right-3">
+                  <div className="absolute top-3 right-3 z-20">
                     <button 
                       className="w-10 h-10 bg-black/60 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/80 transition-colors"
                       title="Hear Sarah"
@@ -447,9 +655,9 @@ export default function InteractiveHero() {
                   </div>
                   
                   {/* Status chips with improved readability */}
-                  <div className="absolute bottom-4 left-4">
+                  <div className="absolute bottom-4 left-4 z-20">
                     {/* "I'm here 24/7..." line - smaller and above chips */}
-                    <div className="text-sm text-white/80 mb-2">
+                    <div className="text-sm text-white/90 mb-2">
                       I&apos;m here 24/7 to answer questions and book appointments
                     </div>
                     <div className="flex flex-wrap gap-x-2.5 md:gap-x-3 gap-y-2 pb-2">
@@ -466,10 +674,9 @@ export default function InteractiveHero() {
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Right: Chat Interface */}
-            <div className="flex flex-col min-h-[500px] md:min-h-[600px] lg:min-h-[650px] p-6 lg:p-8 lg:border-l lg:border-border-default bg-gray-50 lg:bg-transparent">
+            {/* Right: Chat Interface - Match video height */}
+            <div className="flex flex-col min-h-[500px] md:min-h-[650px] lg:min-h-[750px] xl:min-h-[800px] p-6 lg:p-8 lg:border-l lg:border-border-default bg-gray-50 lg:bg-transparent">
               {/* Header */}
               <div className="mb-6">
                 <div className="flex items-center justify-between">
@@ -482,39 +689,78 @@ export default function InteractiveHero() {
                 </div>
               </div>
 
-              {/* Chat Interface */}
+              {/* Chat Interface - Fixed height */}
               <div 
                 ref={chatRef}
-                className="h-[400px] overflow-y-auto bg-white rounded-2xl border border-border-light p-6 mb-6 space-y-4"
+                className="h-[450px] lg:h-[500px] overflow-y-auto bg-white rounded-2xl border border-border-light p-6 mb-6 space-y-4"
                 role="log"
                 aria-live="polite"
                 aria-label="AI conversation"
               >
                 {/* Messages */}
                 {messages.map((message) => (
-                  <div key={message.id} className="animate-fade-in">
-                    <div className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      {/* AI avatar */}
-                      {message.type === 'ai' && (
+                  <div key={message.id} className="animate-fade-in mb-4">
+                    {message.type === 'booking' || message.type === 'system' ? (
+                      <div className="flex justify-center">
+                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl shadow-sm">
+                          <span className="text-sm font-medium text-text-primary">
+                            {message.text}
+                          </span>
+                        </div>
+                      </div>
+                    ) : message.type === 'offer' ? (
+                      <div className="flex justify-start">
                         <div className="w-8 h-8 bg-teal rounded-full flex items-center justify-center flex-shrink-0 mr-3">
                           <span className="text-white text-sm font-medium">S</span>
                         </div>
-                      )}
-                      
-                      <div className={`max-w-[80%] px-4 py-3 rounded-2xl ${
-                        message.type === 'user' 
-                          ? 'bg-teal text-white rounded-tr-none' 
-                          : 'bg-gray-50 text-text-primary rounded-tl-none'
-                      }`}>
-                        {message.text}
-                        {message.confidence && message.confidence < 0.6 && (
-                          <p className="text-text-tertiary text-xs mt-1">
-                            Let me know if I misunderstood!
-                          </p>
-                        )}
+                        <div className="max-w-[80%]">
+                          <button
+                            onClick={() => {
+                              setOfferClicked(true);
+                              setShowPurchaseModal(true);
+                              setScriptedContext('scripted');
+                            }}
+                            className="group bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white rounded-2xl p-4 shadow-lg hover:shadow-xl transform transition-all hover:scale-[1.02] text-left w-full"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-semibold text-base mb-1">{message.text}</p>
+                                {message.subtext && <p className="text-xs text-teal-50">{message.subtext}</p>}
+                              </div>
+                              <svg className="w-5 h-5 text-white group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                            </div>
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                    
+                    ) : (
+                      <div className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        {/* AI avatar */}
+                        {message.type === 'ai' && (
+                          <div className="w-8 h-8 bg-teal rounded-full flex items-center justify-center flex-shrink-0 mr-3">
+                            <span className="text-white text-sm font-medium">S</span>
+                          </div>
+                        )}
+                        
+                        <div className={`max-w-[80%] px-4 py-3 rounded-2xl ${
+                          message.type === 'user' 
+                            ? 'bg-teal text-white rounded-tr-none' 
+                            : 'bg-gray-50 text-text-primary rounded-tl-none'
+                        }`}>
+                          <p className={`text-sm leading-relaxed whitespace-pre-wrap ${
+                            message.type === 'user' ? 'text-white' : 'text-text-primary'
+                          }`}>
+                            {message.text}
+                          </p>
+                          {message.confidence && message.confidence < 0.6 && (
+                            <p className="text-text-tertiary text-xs mt-1">
+                              Let me know if I misunderstood!
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
                 
@@ -629,38 +875,7 @@ export default function InteractiveHero() {
                 )}
               </div>
 
-              {/* CTA Buttons - Outside Chat */}
-              {messages.some(m => m.isCtaMessage) && (
-                <div className="mb-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                  <div className="text-center space-y-3">
-                    <p className="text-sm font-medium text-text-primary">
-                      Get Sarah Live for Your Med Spa
-                    </p>
-                    <div className="flex gap-3 justify-center">
-                      <button
-                        onClick={() => {
-                          setShowPurchaseModal(true);
-                          // trackEvent('purchase_modal_shown', { trigger: 'external_cta_click' });
-                        }}
-                        className="px-4 py-2 bg-teal hover:bg-teal-hover text-white rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
-                        aria-label="Show pricing options"
-                      >
-                        See Pricing Options
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowPurchaseModal(true);
-                          // trackEvent('purchase_modal_shown', { trigger: 'external_cta_click' });
-                        }}
-                        className="px-4 py-2 border-2 border-teal text-teal hover:bg-teal hover:text-white rounded-lg font-medium transition-all duration-200"
-                        aria-label="Get started now"
-                      >
-                        Get Started
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
+              {/* Removed CTA buttons - now handled in chat */}
 
               {/* Footer microcopy */}
               <div className="mt-auto">
@@ -673,8 +888,44 @@ export default function InteractiveHero() {
         </div>
       </div>
       
-      {/* Sticky CTA Banner - Shows after modal dismissal */}
-      {modalWasDismissed && !showPurchaseModal && (
+      {/* Floating CTA - Shows during AI chat mode */}
+      {showFloatingCTA && !showPurchaseModal && (
+        <div className="fixed bottom-4 right-4 z-30 animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 p-4 max-w-sm">
+            <p className="text-sm font-semibold text-text-primary mb-2">
+              Ready to get Sarah for your med spa?
+            </p>
+            <p className="text-xs text-text-secondary mb-3">
+              Live in 48 hours • 30-day money back guarantee
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleCTAClick('pilot')}
+                className="flex-1 px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg font-medium text-sm transition-colors"
+              >
+                Start Pilot
+              </button>
+              <button
+                onClick={() => setShowPurchaseModal(true)}
+                className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium text-sm transition-colors"
+              >
+                See Plans
+              </button>
+            </div>
+            <button
+              onClick={() => setShowFloatingCTA(false)}
+              className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {/* Sticky CTA Banner - Shows after modal dismissal (backup) */}
+      {modalWasDismissed && !showPurchaseModal && !showFloatingCTA && (
         <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-teal-600 to-teal-700 text-white p-4 shadow-2xl z-30 animate-slide-up">
           <div className="max-w-5xl mx-auto flex items-center justify-between">
             <div className="flex-1">
@@ -710,6 +961,8 @@ export default function InteractiveHero() {
       <PurchaseSlideOver 
         isOpen={showPurchaseModal}
         onClose={handleModalClose}
+        context={demoContext}
+        onKeepChatting={handleKeepChatting}
       />
     </section>
   );

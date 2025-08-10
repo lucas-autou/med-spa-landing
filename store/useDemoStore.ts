@@ -112,17 +112,19 @@ export const useDemoStore = create<DemoStore>((set, get) => ({
     // Add the user's initial demo request to conversation history
     get().addConversationMessage('user', 'See it book in 20s', 'greet');
     
-    // Add Sarah's greeting response to conversation history
+    // Add Sarah's greeting response after a delay so user message appears first
     if (greetStep) {
-      get().addConversationMessage('ai', greetStep.bubble, 'greet');
+      setTimeout(() => {
+        get().addConversationMessage('ai', greetStep.bubble, 'greet');
+      }, 800); // Delay Sarah's response to appear after user message
     }
 
     trackEvent('demo_start');
     
-    // Auto-advance to service step (longer delay to see user message)
+    // Auto-advance to service step (now relative to Sarah's message)
     setTimeout(() => {
       get().advanceToStep('service');
-    }, 1800);
+    }, 2600); // Adjusted to account for Sarah's response delay
   },
 
   advanceToStep: (stepId: string) => {
@@ -139,8 +141,9 @@ export const useDemoStore = create<DemoStore>((set, get) => ({
       isTyping: false
     });
 
-    // Add AI message to conversation history (skip if it's the greet step since it's already added)
-    if (stepId !== 'greet') {
+    // Add AI message to conversation history 
+    // Skip if it's the greet step (already added) or has idle preview (will be added after user selection)
+    if (stepId !== 'greet' && !step.idlePreview) {
       get().addConversationMessage('ai', step.bubble, stepId);
     }
 
@@ -183,6 +186,12 @@ export const useDemoStore = create<DemoStore>((set, get) => ({
         // Track preview event
         trackEvent(step.idlePreview!.previewEvent as any);
         
+        // Add the user's auto-selected message to conversation
+        const selectedChip = step.chips?.find(c => c.id === step.idlePreview!.id);
+        if (selectedChip) {
+          get().addConversationMessage('user', selectedChip.label, stepId);
+        }
+        
         // Show the preview animation (visual only, no data storage)
         set({ isAutoSelecting: true });
         
@@ -193,6 +202,13 @@ export const useDemoStore = create<DemoStore>((set, get) => ({
             isAutoSelecting: false 
           });
         }, 1000);
+        
+        // Auto-advance to next step after showing user selection
+        if (step.next) {
+          setTimeout(() => {
+            get().advanceToStep(step.next!);
+          }, 1200);
+        }
       }, step.idlePreview.afterMs);
       
       set({ autoSelectTimer });

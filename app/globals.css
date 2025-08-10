@@ -204,6 +204,22 @@ video {
   }
 }
 
+/* Pulse animation for CTA button */
+@keyframes pulse-soft {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.02);
+  }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
 /* Motion preferences handling */
 @media (prefers-reduced-motion: reduce) {
   * {
@@ -215,7 +231,8 @@ video {
   .animate-fade-in,
   .animate-chip-highlight,
   .animate-chip-select,
-  .animate-step-transition {
+  .animate-step-transition,
+  .animate-pulse-soft {
     animation: none !important;
   }
 }

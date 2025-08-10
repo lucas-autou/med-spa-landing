@@ -12,7 +12,7 @@ export default function ConversionSection() {
   };
 
   const handleDemoClick = () => {
-    trackEvent('cta_click_demo', { location: 'conversion_section' });
+    // trackEvent('cta_click_demo', { location: 'conversion_section' });
     // Could open calendar widget or modal
     router.push('/schedule-demo');
   };
@@ -97,7 +97,7 @@ export default function ConversionSection() {
               <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
             </svg>
             <p className="text-lg lg:text-xl text-text-primary mb-6 italic">
-              "Sarah books an average of 18 extra appointments per month for our clinic — worth <span className="font-bold text-3xl text-emerald-600 px-2 py-1 bg-emerald-100 rounded-lg">$9,000+</span> in additional revenue."
+              &ldquo;Sarah books an average of 18 extra appointments per month for our clinic — worth <span className="font-bold text-3xl text-emerald-600 px-2 py-1 bg-emerald-100 rounded-lg">$9,000+</span> in additional revenue.&rdquo;
             </p>
             <div className="flex items-center justify-center gap-4">
               {/* Real headshot placeholder */}
@@ -108,7 +108,10 @@ export default function ConversionSection() {
                   className="w-full h-full object-cover"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
-                    e.currentTarget.nextElementSibling.style.display = 'flex';
+                    const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
+                    if (nextElement) {
+                      nextElement.style.display = 'flex';
+                    }
                   }}
                 />
                 <div className="w-full h-full bg-gradient-to-br from-teal-400 to-teal-600 rounded-full flex items-center justify-center text-white font-semibold" style={{display: 'none'}}>

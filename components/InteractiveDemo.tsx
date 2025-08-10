@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useDemoStore } from '@/store/useDemoStore';
 import { QUICK_RESPONSES } from '@/lib/intentMapping';
 import AvatarWidget from './AvatarWidget';
@@ -8,6 +8,7 @@ import Chips from './Chips';
 import ChatInput from './ChatInput';
 import VoiceToggle from './VoiceToggle';
 import CTAButtons from './CTAButtons';
+import PurchaseSlideOver from './PurchaseSlideOver';
 
 interface InteractiveDemoProps {
   className?: string;
@@ -34,6 +35,8 @@ export default function InteractiveDemo({
     selectChip,
     reset
   } = useDemoStore();
+  
+  const [showPurchaseSlideOver, setShowPurchaseSlideOver] = useState(false);
 
   // Auto-start if requested
   useEffect(() => {
@@ -285,7 +288,7 @@ export default function InteractiveDemo({
               <CTAButtons 
                 primaryText="Schedule Specialist Consult"
                 secondaryText="Ask Different Question"
-                variant="small"
+                variant="compact"
                 className="gap-2"
               />
             </div>
@@ -299,27 +302,23 @@ export default function InteractiveDemo({
     if (!showCTARail || safetyFlags.length > 0) return null;
 
     return (
-      <div className="mt-6 space-y-4 animate-fade-in">
-        {/* Sarah's special message */}
-        <div className="flex items-start gap-3">
-          <div className="w-8 h-8 bg-teal rounded-full flex items-center justify-center flex-shrink-0">
-            <span className="text-white text-sm font-medium">S</span>
+      <div className="p-4 border-t border-gray-100 bg-gray-50 animate-fade-in">
+        <div className="text-center space-y-4">
+          <h4 className="text-sm font-medium text-text-primary">
+            Get Sarah Live for Your Med Spa
+          </h4>
+          <p className="text-xs text-text-secondary">
+            🔥 Live in 72 hours • Only 3 January spots left
+          </p>
+          
+          {/* CTA Button */}
+          <div className="flex justify-center">
+            <button 
+              onClick={() => setShowPurchaseSlideOver(true)}
+              className="px-6 py-2.5 bg-teal text-white rounded-lg text-sm font-medium hover:bg-teal-hover transition-colors">
+              Get Started
+            </button>
           </div>
-          <div className="flex-1">
-            <div className="bg-gray-50 rounded-2xl rounded-tl-none p-3">
-              <p className="text-text-primary">I'd love to help set this up for your med spa! We can start with a 14-day pilot to see how it works for you.</p>
-            </div>
-          </div>
-        </div>
-        
-        {/* CTA Buttons */}
-        <div className="flex gap-3 justify-center">
-          <button className="px-4 py-2 bg-teal text-white rounded-lg text-sm font-medium hover:bg-teal-hover transition-colors">
-            Start Pilot ($297)
-          </button>
-          <button className="px-4 py-2 border border-teal text-teal rounded-lg text-sm font-medium hover:bg-teal hover:text-white transition-colors">
-            Full Setup
-          </button>
         </div>
       </div>
     );
@@ -364,9 +363,10 @@ export default function InteractiveDemo({
   }
 
   return (
-    <div className={`w-full ${className}`}>
-      {/* Two-column layout matching target design */}
-      <div className="flex gap-6 max-w-7xl mx-auto">
+    <>
+      <div className={`w-full ${className}`}>
+        {/* Two-column layout matching target design */}
+        <div className="flex gap-6 max-w-7xl mx-auto">
         {/* Left: Avatar Card */}
         <div className="w-[440px] flex-shrink-0">
           <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
@@ -379,9 +379,9 @@ export default function InteractiveDemo({
         </div>
 
         {/* Right: Chat Interface */}
-        <div className="flex-1 bg-white rounded-2xl shadow-lg flex flex-col">
+        <div className="flex-1 bg-white rounded-2xl shadow-lg flex flex-col max-h-[600px]">
           {/* Chat Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-100">
+          <div className="flex items-center justify-between p-4 border-b border-gray-100 flex-shrink-0">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-teal rounded-full"></div>
               <span className="text-sm font-medium text-text-primary">Live Demo</span>
@@ -395,15 +395,15 @@ export default function InteractiveDemo({
               }`}
             >
               <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
+                <path fillRule="evenodd" d="M7 4a3 3 0 616 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
               </svg>
               {voiceEnabled ? 'Voice On' : 'Voice Off'}
             </button>
             <span className="text-xs text-text-tertiary">Interactive • no patient data stored</span>
           </div>
 
-          {/* Chat Messages Area */}
-          <div className="flex-1 p-4 space-y-4 min-h-[400px] max-h-[500px] overflow-y-auto">
+          {/* Chat Messages Area - FIXED HEIGHT */}
+          <div className="p-4 space-y-4 overflow-y-auto" style={{height: '320px'}}>
             {renderConversationHistory()}
             {renderSafetyWarning()}
             
@@ -415,12 +415,10 @@ export default function InteractiveDemo({
                 className="mb-4"
               />
             )}
-
-            {renderCTARail()}
           </div>
 
           {/* Chat Input Area */}
-          <div className="p-4 border-t border-gray-100">
+          <div className="p-4 border-t border-gray-100 flex-shrink-0">
             <div className="relative">
               <ChatInput
                 onSubmit={handleUserMessage}
@@ -437,8 +435,18 @@ export default function InteractiveDemo({
               Live in 72 hours on a branded page • Optional website embed
             </p>
           </div>
+
+          {/* Offer CTA Rail - Business Section Outside Chat */}
+          {renderCTARail()}
+        </div>
         </div>
       </div>
-    </div>
+      
+      {/* Purchase SlideOver */}
+      <PurchaseSlideOver 
+        isOpen={showPurchaseSlideOver} 
+        onClose={() => setShowPurchaseSlideOver(false)} 
+      />
+    </>
   );
 }

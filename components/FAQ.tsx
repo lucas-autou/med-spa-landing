@@ -8,36 +8,20 @@ export default function FAQ() {
 
   const faqs = [
     {
-      question: "Will it work with my website?",
-      answer: "Yes, absolutely! No coding required. We provide a simple embed snippet (iframe/script) that works with any website platform - WordPress, Squarespace, Wix, custom sites, you name it. Takes less than 5 minutes to add."
+      question: "Will Sarah work with my booking system?",
+      answer: "Yes! Sarah integrates seamlessly with Vagaro, Mindbody, Acuity, Square Appointments, Google Calendar, Fresha, Booker, and Calendly. We handle all the setup - you don't need to change any of your existing systems."
     },
     {
-      question: "Is Spanish available?",
-      answer: "Yes! Our virtual receptionist speaks both English and Spanish fluently. She can automatically detect the visitor's language preference or they can choose their preferred language at the start of the conversation."
+      question: "Can I change Sarah's script?",
+      answer: "Absolutely! While we provide optimized Med Spa scripts that convert, you can customize Sarah's responses, your service menu, pricing, and policies through a simple dashboard. Changes go live instantly."
     },
     {
-      question: "Do I need to train it?",
-      answer: "Not at all! We handle all the training and setup for you. Our team pre-configures your virtual receptionist with Med Spa-specific scripts, your services, and best practices. You just need to fill out a simple onboarding form."
+      question: "How long to get set up?",
+      answer: "Sarah goes live in 48 hours or less. After checkout, you'll fill out a quick onboarding form (takes 10 minutes), and our team handles everything else. Most clients are capturing leads by day 2."
     },
     {
-      question: "How quickly can I get set up?",
-      answer: "Most setups are completed within 72 hours. After checkout, you'll receive an onboarding form, and our team gets to work immediately. You'll have your virtual receptionist live and capturing leads by the end of the week."
-    },
-    {
-      question: "What if I want to cancel?",
-      answer: "You can cancel your monthly subscription at any time with no penalties or fees. The setup fee is non-refundable, but there are no long-term contracts. For pilot customers, the 14 days are yours to test everything risk-free."
-    },
-    {
-      question: "Does it integrate with my calendar?",
-      answer: "Calendar integration with Google Calendar and Calendly is coming soon! Currently, you'll receive instant email and SMS notifications when someone books, and you can manually add appointments to your calendar. Full automation is in development."
-    },
-    {
-      question: "How many leads can it handle?",
-      answer: "There's no limit! Your virtual receptionist can handle unlimited simultaneous conversations and lead capture. Whether you get 10 visitors or 1000 visitors per day, she'll talk to every single one of them."
-    },
-    {
-      question: "What about privacy and data security?",
-      answer: "We take privacy seriously and are GDPR/CCPA compliant. We only store essential information (name, email, phone, service interest) needed to deliver leads to you. All data is encrypted and you can request deletion at any time."
+      question: "Do I need new software?",
+      answer: "No new software needed! Sarah works through a simple embed code on your existing website (like adding a YouTube video). She connects to your current booking system - no need to learn or manage anything new."
     }
   ];
 

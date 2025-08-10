@@ -95,6 +95,10 @@ const RESPONSES = {
     chips: ['Schedule specialist consult', 'Ask a different question'],
     safetyFlag: true
   },
+  services: {
+    default: "We offer a variety of treatments! Which service interests you?",
+    chips: ['Botox', 'Fillers', 'Laser', 'Facials', 'See all services']
+  },
   unknown: {
     default: "I want to make sure I understand correctly. Are you interested in:",
     chips: ['Booking an appointment', 'Pricing information', 'Rescheduling', 'General questions']

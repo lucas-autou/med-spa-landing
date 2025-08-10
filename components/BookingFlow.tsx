@@ -196,17 +196,22 @@ export default function BookingFlow({
                 Based on your responses, our specialist will ensure you receive the safest and most effective treatment.
               </p>
               
-              <div className="space-y-3">
-                <CTAButtons
-                  primaryText="Schedule Specialist Consult"
-                  secondaryText="Modify My Responses"
-                  variant="compact"
-                  onPrimaryClick={handleSafetyConsult}
-                  onSecondaryClick={() => {
+              <div className="flex gap-3">
+                <button
+                  onClick={handleSafetyConsult}
+                  className="px-4 py-2 bg-teal text-white rounded-lg text-sm font-medium hover:bg-teal-hover transition-colors"
+                >
+                  Schedule Specialist Consult
+                </button>
+                <button
+                  onClick={() => {
                     setSafetyFlag(false);
                     setCurrentStepIndex(Math.max(0, currentStepIndex - 1));
                   }}
-                />
+                  className="px-4 py-2 border border-gray-200 text-text-primary rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+                >
+                  Modify My Responses
+                </button>
               </div>
             </div>
           </div>

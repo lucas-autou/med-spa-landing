@@ -115,40 +115,40 @@ export default function ShowreelHero() {
           <div className="space-y-6 lg:space-y-8 lg:pr-8 order-2 lg:order-1">
             <div className="space-y-4">
               <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-text-primary leading-tight">
-                Never Miss a Booking at Your Med Spa
+                Meet Sarah: Your 24/7 Receptionist That Books More Clients
               </h1>
               <p className="text-base sm:text-lg lg:text-xl text-text-secondary leading-relaxed">
-                Your 24/7 virtual receptionist — answering, qualifying, and booking clients even after hours.
+                Instant replies. Direct bookings. Works with the tools you already use.
               </p>
             </div>
 
             {/* Trust badges */}
             <div className="flex flex-wrap gap-4 text-sm text-text-secondary">
               <span className="flex items-center gap-2 font-medium">
-                <span className="text-green-600 font-bold">✓</span> HIPAA-safe lead capture
+                <span className="text-green-600 font-bold">✓</span> Live in 48h
               </span>
               <span className="flex items-center gap-2 font-medium">
-                <span className="text-green-600 font-bold">✓</span> Setup in 72 hours
+                <span className="text-green-600 font-bold">✓</span> Cancel Anytime
               </span>
               <span className="flex items-center gap-2 font-medium">
-                <span className="text-green-600 font-bold">✓</span> Cancel anytime
+                <span className="text-green-600 font-bold">✓</span> 14-Day Refund Guarantee
               </span>
             </div>
 
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-              <a
-                href="/checkout-pilot"
-                className="inline-flex items-center justify-center px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base font-medium rounded-xl bg-teal-600 text-white hover:bg-teal-700 transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
-              >
-                Start 14-Day Pilot — $297 credit
-              </a>
               <button
                 onClick={scrollToDemo}
+                className="inline-flex items-center justify-center px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base font-medium rounded-xl bg-teal-600 text-white hover:bg-teal-700 transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+              >
+                Talk to Sarah Now
+              </button>
+              <a
+                href="/checkout-pilot"
                 className="inline-flex items-center justify-center px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base font-medium rounded-xl border-2 border-gray-300 text-text-primary hover:bg-gray-50 transition-all duration-200"
               >
-                See it live ↓
-              </button>
+                Start My Setup
+              </a>
             </div>
 
             {/* Micro-proof and pricing transparency */}

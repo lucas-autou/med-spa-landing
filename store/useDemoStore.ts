@@ -363,7 +363,7 @@ export const useDemoStore = create<DemoStore>((set, get) => ({
       'interactive_greet'
     );
 
-    trackEvent('interactive_demo_start');
+    trackEvent('demo_start');
   },
 
   processUserMessage: (message: string, intentResult?: IntentResult) => {
@@ -405,7 +405,7 @@ export const useDemoStore = create<DemoStore>((set, get) => ({
     }, 500);
 
     // Track intent
-    trackEvent(`interactive_intent_${result.intent}`);
+    trackEvent('intent_detected', { intent: result.intent });
 
     // Show CTA if appropriate
     if (result.intent === 'book_appointment' && !result.safetyFlag) {
@@ -418,7 +418,7 @@ export const useDemoStore = create<DemoStore>((set, get) => ({
 
   setVoiceEnabled: (enabled: boolean) => {
     set({ voiceEnabled: enabled });
-    trackEvent(enabled ? 'voice_enabled' : 'voice_disabled');
+    // trackEvent(enabled ? 'voice_enabled' : 'voice_disabled');
   },
 
   setRecording: (recording: boolean) => {
@@ -432,7 +432,7 @@ export const useDemoStore = create<DemoStore>((set, get) => ({
     const { safetyFlags } = get();
     if (!safetyFlags.includes(flag)) {
       set({ safetyFlags: [...safetyFlags, flag] });
-      trackEvent(`safety_flag_${flag}`);
+      // trackEvent(`safety_flag_${flag}`);
     }
   },
 

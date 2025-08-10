@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { trackEvent } from '@/lib/analytics';
 import { useRouter } from 'next/navigation';
 import { classifyIntent, type IntentResult } from '@/lib/intentMapping';
+import PurchaseSlideOver from './PurchaseSlideOver';
 
 // Voice interface types
 interface SpeechRecognitionEvent {
@@ -67,9 +68,14 @@ export default function InteractiveHero() {
   
   // AI Chat state
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [currentChips, setCurrentChips] = useState<string[]>(['Book appointment', 'See pricing', 'Ask question']);
+  const [currentChips, setCurrentChips] = useState<string[]>(['Book appointment', 'Get pricing', 'Ask question']);
   const [selectedChip, setSelectedChip] = useState<string | null>(null);
   const [isTyping, setIsTyping] = useState(false);
+  
+  // Purchase slide-over state
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [interactionCount, setInteractionCount] = useState(0);
+  const [modalWasDismissed, setModalWasDismissed] = useState(false);
   
   // Voice interface
   const [isListening, setIsListening] = useState(false);
@@ -132,6 +138,14 @@ export default function InteractiveHero() {
 
       const aiResult = await response.json();
       
+      // Debug logging
+      console.log('🤖 AI Response:', {
+        followUpAction: aiResult.followUpAction,
+        interactionCount,
+        chips: aiResult.chips,
+        shouldShowModal: (aiResult.followUpAction === 'booking' || aiResult.followUpAction === 'consult') && interactionCount >= 2
+      });
+      
       setTimeout(() => {
         const aiMessage: ChatMessage = {
           id: Date.now().toString() + '_ai',
@@ -150,13 +164,32 @@ export default function InteractiveHero() {
           setCurrentChips(aiResult.chips.slice(0, 3)); // Max 3 chips
         }
         
-        // Show CTA if appropriate - add inline message instead of bottom rail
-        if (aiResult.followUpAction === 'booking' || aiResult.followUpAction === 'consult') {
+        // Show purchase slide-over if appropriate
+        if ((aiResult.followUpAction === 'booking' || aiResult.followUpAction === 'consult') && interactionCount >= 2) {
+          console.log('🎯 Triggering slide-over modal!');
           setTimeout(() => {
             const ctaMessage: ChatMessage = {
               id: Date.now().toString() + '_cta',
               type: 'ai',
-              text: "I'd love to help set this up for your med spa! We can start with a 14-day pilot to see how it works for you.",
+              text: "Perfect! I can get you set up right now. Let me show you our options - I have everything ready for you.",
+              timestamp: Date.now(),
+              isCtaMessage: true
+            };
+            setMessages(prev => [...prev, ctaMessage]);
+            
+            // Show purchase slide-over after a brief delay
+            setTimeout(() => {
+              setShowPurchaseModal(true);
+              // trackEvent('purchase_modal_shown', { trigger: 'ai_detected_intent' });
+            }, 2000);
+          }, 1500);
+        } else if (aiResult.followUpAction === 'booking' || aiResult.followUpAction === 'consult') {
+          // For earlier interactions, just add inline message without modal
+          setTimeout(() => {
+            const ctaMessage: ChatMessage = {
+              id: Date.now().toString() + '_cta',
+              type: 'ai',
+              text: "I'd love to help set this up for your med spa! Tell me a bit more about your needs and I can show you our options.",
               timestamp: Date.now(),
               isCtaMessage: true
             };
@@ -200,6 +233,13 @@ export default function InteractiveHero() {
       setSelectedChip(input);
       setTimeout(() => setSelectedChip(null), 300);
     }
+    
+    // Increment interaction count
+    setInteractionCount(prev => {
+      const newCount = prev + 1;
+      console.log('📊 Interaction count:', newCount);
+      return newCount;
+    });
     
     handleAIMessage(input);
   }, [handleAIMessage]);
@@ -279,6 +319,14 @@ export default function InteractiveHero() {
   // Handle chip selection
   const handleChipClick = (chipLabel: string) => {
     trackEvent('chip_select', { value: chipLabel });
+    
+    // Special handling for pricing chips - show slide-over directly
+    if (chipLabel.toLowerCase().includes('pricing') || chipLabel.toLowerCase().includes('get pricing')) {
+      setShowPurchaseModal(true);
+      // trackEvent('purchase_modal_shown', { trigger: 'pricing_chip_click' });
+      return;
+    }
+    
     processUserInput(chipLabel, true);
   };
 
@@ -320,6 +368,13 @@ export default function InteractiveHero() {
       trackEvent('cta_click_full', { location: 'hero' });
       router.push('/checkout-full');
     }
+  };
+
+  // Handle modal close with dismissal tracking
+  const handleModalClose = () => {
+    setShowPurchaseModal(false);
+    setModalWasDismissed(true);
+    // trackEvent('purchase_modal_dismissed', { interactions: interactionCount });
   };
 
   return (
@@ -430,7 +485,7 @@ export default function InteractiveHero() {
               {/* Chat Interface */}
               <div 
                 ref={chatRef}
-                className="flex-1 overflow-y-auto bg-white rounded-2xl border border-border-light p-6 mb-6 space-y-4"
+                className="h-[400px] overflow-y-auto bg-white rounded-2xl border border-border-light p-6 mb-6 space-y-4"
                 role="log"
                 aria-live="polite"
                 aria-label="AI conversation"
@@ -460,27 +515,6 @@ export default function InteractiveHero() {
                       </div>
                     </div>
                     
-                    {/* Inline CTA buttons for CTA messages */}
-                    {message.isCtaMessage && (
-                      <div className="flex justify-start ml-11 mt-3">
-                        <div className="flex gap-3">
-                          <button
-                            onClick={() => handleCTAClick('pilot')}
-                            className="px-4 py-2 bg-teal hover:bg-teal-hover text-white rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
-                            aria-label="Start 14-day pilot for $297"
-                          >
-                            Start Pilot ($297)
-                          </button>
-                          <button
-                            onClick={() => handleCTAClick('full')}
-                            className="px-4 py-2 border-2 border-teal text-teal hover:bg-teal hover:text-white rounded-lg font-medium transition-all duration-200"
-                            aria-label="Book full setup"
-                          >
-                            Full Setup
-                          </button>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 ))}
                 
@@ -595,6 +629,39 @@ export default function InteractiveHero() {
                 )}
               </div>
 
+              {/* CTA Buttons - Outside Chat */}
+              {messages.some(m => m.isCtaMessage) && (
+                <div className="mb-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <div className="text-center space-y-3">
+                    <p className="text-sm font-medium text-text-primary">
+                      Get Sarah Live for Your Med Spa
+                    </p>
+                    <div className="flex gap-3 justify-center">
+                      <button
+                        onClick={() => {
+                          setShowPurchaseModal(true);
+                          // trackEvent('purchase_modal_shown', { trigger: 'external_cta_click' });
+                        }}
+                        className="px-4 py-2 bg-teal hover:bg-teal-hover text-white rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
+                        aria-label="Show pricing options"
+                      >
+                        See Pricing Options
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowPurchaseModal(true);
+                          // trackEvent('purchase_modal_shown', { trigger: 'external_cta_click' });
+                        }}
+                        className="px-4 py-2 border-2 border-teal text-teal hover:bg-teal hover:text-white rounded-lg font-medium transition-all duration-200"
+                        aria-label="Get started now"
+                      >
+                        Get Started
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Footer microcopy */}
               <div className="mt-auto">
                 <div className="text-center text-xs text-text-tertiary py-2">
@@ -605,6 +672,45 @@ export default function InteractiveHero() {
           </div>
         </div>
       </div>
+      
+      {/* Sticky CTA Banner - Shows after modal dismissal */}
+      {modalWasDismissed && !showPurchaseModal && (
+        <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-teal-600 to-teal-700 text-white p-4 shadow-2xl z-30 animate-slide-up">
+          <div className="max-w-5xl mx-auto flex items-center justify-between">
+            <div className="flex-1">
+              <p className="font-semibold text-sm">
+                🔥 Don&apos;t miss out! Only 3 January setup spots left
+              </p>
+              <p className="text-xs opacity-90">
+                Get Sarah live for your med spa in 72 hours
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => handleCTAClick('pilot')}
+                className="px-4 py-2 bg-white text-teal-600 rounded-lg font-semibold text-sm hover:bg-gray-100 transition-colors"
+              >
+                Start Pilot - $297
+              </button>
+              <button
+                onClick={() => setModalWasDismissed(false)}
+                className="text-white hover:text-gray-300 transition-colors"
+                title="Close banner"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Purchase Slide-over Modal */}
+      <PurchaseSlideOver 
+        isOpen={showPurchaseModal}
+        onClose={handleModalClose}
+      />
     </section>
   );
 }

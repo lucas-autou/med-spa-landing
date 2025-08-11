@@ -114,40 +114,40 @@ function generateSpokenResponse(fullResponse: string, userMessage: string): stri
     return undefined; // Use the same response for both
   }
   
-  // Common patterns for long responses that need short versions
+  // Common patterns for long responses that need short versions - MORE HUMAN AND WARM
   if (lowerMessage.includes('services') || lowerMessage.includes('what do you offer')) {
-    return "Sure! I'll list all our services in the chat for you.";
+    return "Oh wonderful! I'd love to tell you about all our amazing services. I'm putting together a complete list for you in the chat right now.";
   }
   
   if (lowerMessage.includes('price') && fullResponse.length > 100) {
-    return "Let me show you our pricing details in the chat.";
+    return "Absolutely! Let me get you all our pricing information. I'm writing it out clearly in the chat so you can review everything.";
   }
   
   if (lowerMessage.includes('hours') || lowerMessage.includes('when are you open')) {
-    return "I'll send you our complete schedule in the chat.";
+    return "Of course! I'm sending you our complete schedule in the chat so you can see all our available hours.";
   }
   
   if (lowerResponse.includes('botox') && lowerResponse.includes('filler') && lowerResponse.includes('laser')) {
-    return "I've listed all our treatment options in the chat for you.";
+    return "Perfect! I've put together all our treatment options for you. Take a look at the chat - I've listed everything there with all the details you need.";
   }
   
   if (lowerMessage.includes('how') && lowerMessage.includes('work')) {
-    return "I'll explain everything in detail in the chat.";
+    return "Great question! I'm explaining everything step by step in the chat so you can see exactly how it all works.";
   }
   
   // For booking confirmations
   if (lowerResponse.includes('confirmed') || lowerResponse.includes('all set')) {
-    return "Perfect! Your appointment is confirmed. Check the chat for details.";
+    return "Wonderful! Your appointment is all confirmed. I've put all the important details in the chat for you to reference.";
   }
   
   // For lists or multiple items
   if (fullResponse.includes('•') || fullResponse.includes('\n-') || fullResponse.split('\n').length > 3) {
-    return "I've sent you the complete information in the chat.";
+    return "I've prepared all that information for you! Everything is laid out nicely in the chat so you can review it at your own pace.";
   }
   
-  // Default for any long response
+  // Default for any long response - warmer and more personal
   if (fullResponse.length > 150) {
-    return "Let me explain that for you - check the chat for details.";
+    return "This is a great question! I've written out a detailed response for you in the chat with all the information you need.";
   }
   
   return undefined;

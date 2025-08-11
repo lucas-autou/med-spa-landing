@@ -26,14 +26,14 @@ export default function OfferPricing() {
               </div>
               <div>
                 <p className="font-bold text-lg">Try Sarah for 14 days</p>
-                <p className="text-sm opacity-90">Keep all the leads, or get 100% back</p>
+                <p className="text-sm opacity-90">Keep all leads or 100% money back guarantee</p>
               </div>
             </div>
             <button
               onClick={handleCTAClick}
               className="px-6 py-3 bg-white text-green-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors shadow-lg"
             >
-              Start Your 14-Day Pilot
+              Start 14-Day Pilot — $297
             </button>
           </div>
         </div>
@@ -47,14 +47,14 @@ export default function OfferPricing() {
           
           <div className="p-8 md:p-10">
             {/* Pilot Offer */}
-            <div className="bg-teal/5 border-2 border-teal rounded-xl p-6 mb-6">
+            <div className="bg-teal/5 border-2 border-teal rounded-xl p-8 mb-6 shadow-lg">
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h3 className="text-xl font-bold text-text-primary mb-1">14-Day Pilot</h3>
                   <p className="text-sm text-text-secondary">Perfect to see Sarah in action</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-3xl font-bold text-text-primary">$297</p>
+                  <p className="text-4xl font-bold text-text-primary">$297</p>
                   <p className="text-xs text-text-secondary">one-time</p>
                 </div>
               </div>
@@ -72,13 +72,16 @@ export default function OfferPricing() {
               
               <button
                 onClick={handleCTAClick}
-                className="w-full py-3 bg-teal hover:bg-teal-hover text-white font-semibold rounded-xl transition-colors shadow-md"
+                className="w-full py-4 bg-teal hover:bg-teal-hover text-white font-bold text-lg rounded-xl transition-colors shadow-lg hover:shadow-xl"
               >
-                Start Pilot — $297
+                Start 14-Day Pilot — $297
               </button>
               
               <p className="text-xs text-text-tertiary text-center mt-3">
                 Full $297 credit if you upgrade
+              </p>
+              <p className="text-xs text-text-tertiary text-center mt-2">
+                After pilot/setup, service is $199/mo. Cancel anytime.
               </p>
             </div>
 
@@ -108,7 +111,7 @@ export default function OfferPricing() {
             {/* Transparency */}
             <div className="mt-8 pt-6 border-t border-gray-200">
               <p className="text-xs text-text-tertiary text-center">
-                After pilot or setup, ongoing access is $199/mo. Cancel anytime. HIPAA-ready.
+                After pilot/setup, service is $199/mo. Cancel anytime.
               </p>
             </div>
 

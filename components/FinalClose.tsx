@@ -78,13 +78,17 @@ export default function FinalClose() {
               onClick={handleCTAClick}
               className="inline-flex items-center justify-center gap-2 px-10 py-4 text-lg font-bold rounded-xl bg-gradient-to-r from-teal to-teal-hover text-white hover:from-teal-hover hover:to-teal transition-all duration-200 shadow-2xl hover:shadow-teal/50 hover:-translate-y-0.5 group"
             >
-              Start Pilot — $297
+              Start 14-Day Pilot — $297
               <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>
             
-            <div className="text-sm text-gray-400">
+            <p className="text-xs text-gray-400 mt-2">
+              After pilot/setup, service is $199/mo. Cancel anytime.
+            </p>
+            
+            <div className="text-sm text-gray-400 mt-3">
               <button
                 onClick={() => {
                   trackEvent('see_plans_click', { location: 'final_close' });
@@ -98,26 +102,9 @@ export default function FinalClose() {
           </div>
 
           {/* Reassurance Strip */}
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-gray-400">
-            <div className="flex items-center gap-2">
-              <svg className="w-4 h-4 text-teal-400" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              Live in 72h
-            </div>
-            <div className="flex items-center gap-2">
-              <svg className="w-4 h-4 text-teal-400" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              No system change
-            </div>
-            <div className="flex items-center gap-2">
-              <svg className="w-4 h-4 text-teal-400" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              30-day money-back
-            </div>
-          </div>
+          <p className="text-xs text-gray-500 mt-8">
+            Go live in 48–72h · We handle everything · Works with your booking system
+          </p>
         </div>
       </div>
 

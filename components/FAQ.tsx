@@ -147,10 +147,13 @@ export default function FAQ() {
             }}
             className="px-8 py-3 bg-teal hover:bg-teal-hover text-white font-semibold rounded-xl transition-colors shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
           >
-            Start Pilot — $297
+            Start 14-Day Pilot — $297
           </button>
           <p className="text-xs text-text-tertiary mt-3">
-            14-day money-back guarantee • No contracts
+            After pilot/setup, service is $199/mo. Cancel anytime.
+          </p>
+          <p className="text-xs text-text-tertiary mt-2">
+            Go live in 48–72h · We handle everything · Works with your booking system
           </p>
         </div>
 

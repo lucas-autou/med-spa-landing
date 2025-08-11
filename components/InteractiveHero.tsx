@@ -608,6 +608,14 @@ export default function InteractiveHero() {
             <div className="relative">
               {/* Video Container - Larger for impact */}
               <div className="relative w-full min-h-[500px] md:min-h-[650px] lg:min-h-[750px] xl:min-h-[800px] bg-gray-100 rounded-l-3xl lg:rounded-r-none overflow-hidden">
+                  {!videoLoaded && (
+                    <img 
+                      src="/videos/poster.jpg" 
+                      alt="Sarah - Virtual Assistant"
+                      className="absolute inset-0 w-full h-full object-cover z-0"
+                      loading="eager"
+                    />
+                  )}
                   <video
                     ref={videoRef}
                     src={getVideoSrc()}
@@ -616,6 +624,8 @@ export default function InteractiveHero() {
                     loop
                     muted
                     playsInline
+                    loading="lazy"
+                    poster="/videos/poster.jpg"
                     className="absolute inset-0 w-full h-full object-cover z-0"
                     onLoadedData={() => {
                       console.log('Video loaded:', getVideoSrc());
@@ -625,7 +635,8 @@ export default function InteractiveHero() {
                     onError={(e) => {
                       console.error('Video error:', e, 'Source:', getVideoSrc());
                     }}
-                    aria-label="Virtual assistant avatar"
+                    aria-label="Sarah, your virtual assistant - video demonstration"
+                    role="img"
                   />
                   {/* Stronger bottom gradient for contrast */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none z-10" />
@@ -643,10 +654,11 @@ export default function InteractiveHero() {
                   {/* Unmute Button with improved hit area */}
                   <div className="absolute top-3 right-3 z-20">
                     <button 
-                      className="w-10 h-10 bg-black/60 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/80 transition-colors"
-                      title="Hear Sarah"
-                      aria-label="Unmute audio"
+                      className="w-10 h-10 bg-black/60 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/80 transition-colors focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2"
+                      title="Toggle audio (currently muted)"
+                      aria-label="Toggle audio for Sarah's voice"
                       aria-pressed="false"
+                      type="button"
                     >
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.766L4.146 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.146l4.237-3.766a1 1 0 011.617.766zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.983 5.983 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.984 3.984 0 00-1.172-2.828 1 1 0 010-1.415z" clipRule="evenodd" />
@@ -657,7 +669,7 @@ export default function InteractiveHero() {
                   {/* Status chips with improved readability */}
                   <div className="absolute bottom-4 left-4 z-20">
                     {/* "I'm here 24/7..." line - smaller and above chips */}
-                    <div className="text-sm text-white/90 mb-2">
+                    <div className="text-sm text-white/90 mb-2" role="status" aria-live="polite">
                       I&apos;m here 24/7 to answer questions and book appointments
                     </div>
                     <div className="flex flex-wrap gap-x-2.5 md:gap-x-3 gap-y-2 pb-2">

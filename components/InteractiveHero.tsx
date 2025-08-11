@@ -81,6 +81,10 @@ export default function InteractiveHero() {
   const [videoState, setVideoState] = useState<'idle' | 'listening' | 'talking' | 'wave'>('idle');
   const [isMuted, setIsMuted] = useState(true); // Start muted by default
   
+  // Refs for real-time state access (avoid stale closures)
+  const isMutedRef = useRef(true);
+  const hasUserInteractedRef = useRef(false);
+  
   // AI Chat state
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentChips, setCurrentChips] = useState<string[]>(['Book appointment', 'Get pricing', 'Ask question']);
@@ -112,6 +116,17 @@ export default function InteractiveHero() {
   const [showFloatingCTA, setShowFloatingCTA] = useState(false);
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const [showAudioActivated, setShowAudioActivated] = useState(false);
+
+  // Sync refs with state to avoid stale closures
+  useEffect(() => {
+    isMutedRef.current = isMuted;
+    console.log('📌 isMuted ref updated:', isMuted);
+  }, [isMuted]);
+
+  useEffect(() => {
+    hasUserInteractedRef.current = hasUserInteracted;
+    console.log('📌 hasUserInteracted ref updated:', hasUserInteracted);
+  }, [hasUserInteracted]);
 
   // Add initial greeting message with auto-start
   useEffect(() => {
@@ -212,13 +227,23 @@ export default function InteractiveHero() {
         setVideoState('talking');
         setMessages(prev => [...prev, aiMessage]);
         
+        // CRITICAL: Use refs for real-time state values (avoid stale closure)
+        const canSpeak = !isMutedRef.current && hasUserInteractedRef.current;
+        
+        console.log('🔍 TTS Debug DETAILED:', {
+          canSpeak,
+          isMuted_state: isMuted,
+          isMuted_ref: isMutedRef.current,
+          hasUserInteracted_state: hasUserInteracted,
+          hasUserInteracted_ref: hasUserInteractedRef.current,
+          hasSpokenResponse: !!aiResult.spokenResponse,
+          timestamp: Date.now()
+        });
+        
         // Speak the response if audio is enabled and user has interacted
-        if (!isMuted && hasUserInteracted) {
+        if (canSpeak) {
           const textToSpeak = aiResult.spokenResponse || aiResult.response;
-          console.log('🔊 TTS attempt:', { 
-            isMuted, 
-            hasUserInteracted,
-            hasSpokenResponse: !!aiResult.spokenResponse,
+          console.log('🔊 TTS attempting to speak:', { 
             textLength: textToSpeak.length,
             text: textToSpeak.substring(0, 50) + '...'
           });
@@ -229,10 +254,10 @@ export default function InteractiveHero() {
             console.error('❌ TTS error:', error);
           }
         } else {
-          console.log('🔇 TTS skipped:', { 
-            isMuted, 
-            hasUserInteracted,
-            reason: isMuted ? 'audio is muted' : 'no user interaction yet'
+          console.log('🔇 TTS skipped - reasons:', { 
+            isMuted_ref: isMutedRef.current,
+            hasUserInteracted_ref: hasUserInteractedRef.current,
+            reason: isMutedRef.current ? 'audio is muted' : 'no user interaction yet'
           });
         }
         
@@ -277,12 +302,20 @@ export default function InteractiveHero() {
         setCurrentChips(['Schedule consult', 'See pricing', 'Try again']);
         
         // Speak fallback message if audio is enabled
-        if (!isMuted) {
+        const fallbackCanSpeak = !isMutedRef.current && hasUserInteractedRef.current;
+        console.log('🚨 Fallback TTS check:', { 
+          fallbackCanSpeak,
+          isMuted_ref: isMutedRef.current,
+          hasUserInteracted_ref: hasUserInteractedRef.current
+        });
+        
+        if (fallbackCanSpeak) {
           const shortFallback = "I'm having a connection issue, but I can still help you!";
           try {
             await speak(shortFallback);
+            console.log('✅ Fallback TTS spoken');
           } catch (error) {
-            console.error('TTS error:', error);
+            console.error('❌ Fallback TTS error:', error);
           }
         }
         
@@ -298,16 +331,20 @@ export default function InteractiveHero() {
 
   // Process user input (text or chip)
   const processUserInput = useCallback((input: string, isChipSelection: boolean = false) => {
+    console.log('🎯 processUserInput called with:', input.substring(0, 30));
+    
     // Mark that user has interacted and auto-unmute for TTS
     if (!hasUserInteracted) {
       setHasUserInteracted(true);
-      console.log('👤 First user interaction detected');
+      hasUserInteractedRef.current = true; // Update ref immediately
+      console.log('👤 First user interaction detected - ref updated immediately');
       
       // Auto-unmute audio on first interaction for better UX
       if (isMuted && videoRef.current) {
         videoRef.current.muted = false;
         setIsMuted(false);
-        console.log('🔊 Auto-unmuted audio on first user interaction');
+        isMutedRef.current = false; // Update ref immediately
+        console.log('🔊 Auto-unmuted audio on first user interaction - ref updated immediately');
         
         // Show brief notification
         setShowAudioActivated(true);
@@ -471,9 +508,12 @@ export default function InteractiveHero() {
   // Toggle audio mute/unmute
   const toggleAudio = () => {
     if (videoRef.current) {
-      videoRef.current.muted = !videoRef.current.muted;
-      setIsMuted(!isMuted);
-      trackEvent('audio_toggle', { muted: !isMuted });
+      const newMutedState = !isMuted;
+      videoRef.current.muted = newMutedState;
+      setIsMuted(newMutedState);
+      isMutedRef.current = newMutedState; // Update ref immediately
+      console.log('🔄 Audio toggled:', { newMutedState });
+      trackEvent('audio_toggle', { muted: newMutedState });
     }
   };
   
@@ -482,14 +522,16 @@ export default function InteractiveHero() {
     trackEvent('demo_start' as any);
     setShowDemoButton(false);
     setIsScriptedDemo(true);
-    setHasUserInteracted(true); // Mark as user interaction
+    setHasUserInteracted(true);
+    hasUserInteractedRef.current = true; // Update ref immediately
     setMessages([]);
     
     // Unmute audio FIRST before any TTS attempts
     if (videoRef.current) {
       videoRef.current.muted = false;
       setIsMuted(false);
-      console.log('🔊 Audio unmuted for demo - TTS will be active');
+      isMutedRef.current = false; // Update ref immediately
+      console.log('🔊 Demo started - Audio unmuted - Refs updated immediately');
     }
     
     // Small delay to ensure state updates are processed
@@ -533,13 +575,16 @@ export default function InteractiveHero() {
             setIsTyping(false);
             
             // Speak the message if audio is enabled (demo unmutes automatically)
+            const demoCanSpeak = !isMutedRef.current;
             console.log('🎭 Demo TTS check:', { 
-              isMuted, 
+              demoCanSpeak,
+              isMuted_state: isMuted,
+              isMuted_ref: isMutedRef.current,
               stepIndex: index,
               textLength: step.text.length 
             });
             
-            if (!isMuted) {
+            if (demoCanSpeak) {
               // For scripted demo, create appropriate short versions
               let textToSpeak = step.text;
               if (step.text.length > 100) {
@@ -647,12 +692,20 @@ export default function InteractiveHero() {
     setMessages(prev => [...prev, continueMessage]);
     
     // Speak the continue message if audio is enabled
-    if (!isMuted) {
+    const continueCanSpeak = !isMutedRef.current && hasUserInteractedRef.current;
+    console.log('💬 Continue chat TTS check:', { 
+      continueCanSpeak,
+      isMuted_ref: isMutedRef.current,
+      hasUserInteracted_ref: hasUserInteractedRef.current
+    });
+    
+    if (continueCanSpeak) {
       const shortContinue = "Great! I'm here to answer any questions. What would you like to know?";
       try {
         await speak(shortContinue);
+        console.log('✅ Continue TTS spoken');
       } catch (error) {
-        console.error('TTS error:', error);
+        console.error('❌ Continue TTS error:', error);
       }
     }
     

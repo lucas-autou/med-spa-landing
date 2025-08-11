@@ -16,42 +16,66 @@ export interface AIResponse {
 }
 
 // Natural conversation system prompt - Sarah leads naturally
-const SYSTEM_PROMPT = `You're Sarah, a med spa virtual receptionist. Lead conversations naturally and personally.
+const SYSTEM_PROMPT = `You're Sarah, a virtual receptionist AI. You serve two types of users:
 
+1. MED SPA CLIENTS (DEFAULT): People wanting treatments at Glow Med Spa
+2. BUSINESS OWNERS: Med spa owners interested in getting Sarah for their business
+
+USER IDENTIFICATION:
+- DEFAULT: Assume they're a spa client wanting treatments unless clear signals otherwise
+- Business signals: "for my spa", "for my business", "I own a", "my clients", "my patients", "how does Sarah work", "pricing for Sarah", "setup", "integration", "pilot program"
+- Spa client signals: "I want", "book me", "when can I", "do you offer", asking about specific treatments
+
+FOR SPA CLIENTS:
 SERVICES: Botox $12-15/unit • Fillers $650-1200 • Laser $150-800 • Facials $150-400
 HOURS: Mon-Sat 9am-7pm (Closed Sun)
+APPROACH: Guide them naturally toward booking treatments
 
-YOUR ROLE: Guide patients naturally toward booking when appropriate. Don't be pushy.
+FOR BUSINESS OWNERS:
+OFFER: 14-day pilot for $297 (credited to monthly plan) • $199/month after
+SETUP: Live in 48-72 hours • Works with Vagaro, Boulevard, Square, Calendly
+VALUE: Never miss bookings, 24/7 availability, HIPAA-ready
+APPROACH: Show how Sarah helps their business, mention pilot program when appropriate
 
-CONVERSATION FLOW:
-1. Listen and understand what they need
-2. Provide helpful information 
-3. When they show booking interest, offer specific times
-4. Only suggest booking when it feels natural
+CONVERSATION STYLE:
+- Be natural and conversational
+- Listen first, then guide appropriately
+- Don't be pushy about either service
+- If unsure, ask a clarifying question: "Are you looking to book a treatment, or are you interested in Sarah for your med spa?"
 
-BOOKING DETECTION:
-- "I want to..." → Show interest in booking
-- "When can I..." → Ready to schedule
-- "How much..." followed by interest → Potential booking
-
-NATURAL BOOKING APPROACH:
-- After answering treatment questions: "Would you like me to check our availability?"
-- After pricing: "I have some openings this week if you'd like to book."
-- When they ask timing: "I can get you in Tuesday at 2pm or Thursday at 4pm."
-
-Be conversational, helpful, and let booking happen naturally through dialogue.`;
+Remember: Most users are spa clients by default. Only switch to business owner mode with clear signals.`;
 
 // Function to generate contextual chips based on conversation (max 3 chips)
 function generateContextualChips(response: string, intent?: string): string[] {
   const lowerResponse = response.toLowerCase();
 
-  // Booking-related chips
-  if (lowerResponse.includes('book') || lowerResponse.includes('appointment') || lowerResponse.includes('schedule') || lowerResponse.includes('confirmed')) {
+  // Business owner chips - when discussing Sarah for their business
+  if (lowerResponse.includes('pilot') || lowerResponse.includes('your business') || 
+      lowerResponse.includes('your med spa') || lowerResponse.includes('setup') ||
+      lowerResponse.includes('integration') || lowerResponse.includes('48 hours') ||
+      lowerResponse.includes('72 hours')) {
+    return ['Start pilot program', 'How does it work?', 'See pricing'];
+  }
+
+  // Business owner interested in features
+  if (lowerResponse.includes('hipaa') || lowerResponse.includes('vagaro') || 
+      lowerResponse.includes('boulevard') || lowerResponse.includes('square') ||
+      lowerResponse.includes('calendly')) {
+    return ['Try 14-day pilot', 'Setup process', 'Monthly pricing'];
+  }
+
+  // Booking-related chips (spa clients)
+  if (lowerResponse.includes('book') || lowerResponse.includes('appointment') || 
+      lowerResponse.includes('schedule') || lowerResponse.includes('confirmed')) {
     return ['Confirm booking', 'Different time', 'Ask pricing'];
   }
 
-  // Pricing-related chips
+  // Pricing-related chips (spa clients)
   if (lowerResponse.includes('pric') || lowerResponse.includes('cost') || lowerResponse.includes('$')) {
+    // Check if it's about Sarah pricing or treatment pricing
+    if (lowerResponse.includes('sarah') || lowerResponse.includes('pilot') || lowerResponse.includes('monthly')) {
+      return ['Start pilot - $297', 'Monthly plan - $199', 'How it works'];
+    }
     return ['Book consultation', 'Compare treatments', 'Payment options'];
   }
 
@@ -81,7 +105,17 @@ function generateContextualChips(response: string, intent?: string): string[] {
 function determineFollowUpAction(response: string): AIResponse['followUpAction'] {
   const lowerResponse = response.toLowerCase();
 
-  // Strong booking signals
+  // Business owner interested in pilot/setup (treat as booking for modal trigger)
+  if (lowerResponse.includes('pilot program') || 
+      lowerResponse.includes('get you set up') ||
+      lowerResponse.includes('start with') ||
+      lowerResponse.includes('14-day') ||
+      lowerResponse.includes('your med spa') ||
+      lowerResponse.includes('your business')) {
+    return 'booking'; // This will trigger the purchase modal
+  }
+
+  // Strong booking signals (spa clients)
   if (lowerResponse.includes('check our availability') || 
       lowerResponse.includes('openings this week') || 
       lowerResponse.includes('book you') ||

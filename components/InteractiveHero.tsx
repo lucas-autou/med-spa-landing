@@ -428,17 +428,17 @@ export default function InteractiveHero() {
     // Scripted conversation steps
     const scriptedSteps = [
       { delay: 100, type: 'ai', text: "Hi! Welcome to Glow Med Spa. I'm Sarah, your virtual receptionist. How can I help you today?" },
-      { delay: 2500, type: 'user', text: "I'd like to book a Botox appointment" },
-      { delay: 1500, type: 'ai', text: "Perfect! I can help you book your Botox appointment. When works best for you?" },
-      { delay: 2500, type: 'user', text: "Do you have anything available this week?" },
-      { delay: 1500, type: 'ai', text: "Let me check our availability... I have Thursday at 2pm or Friday at 10am. Which would you prefer?" },
-      { delay: 2500, type: 'user', text: "Thursday at 2pm works great" },
-      { delay: 1500, type: 'ai', text: "Excellent! You're all set for Thursday at 2pm for your Botox appointment. You'll receive a confirmation text shortly with all the details." },
+      { delay: 3500, type: 'user', text: "I'd like to book a Botox appointment" },
+      { delay: 3000, type: 'ai', text: "Perfect! I can help you book your Botox appointment. When works best for you?" },
+      { delay: 3500, type: 'user', text: "Do you have anything available this week?" },
+      { delay: 3000, type: 'ai', text: "Let me check our availability... I have Thursday at 2pm or Friday at 10am. Which would you prefer?" },
+      { delay: 3500, type: 'user', text: "Thursday at 2pm works great" },
+      { delay: 3000, type: 'ai', text: "Excellent! You're all set for Thursday at 2pm for your Botox appointment. You'll receive a confirmation text shortly with all the details." },
       { delay: 2000, type: 'booking', text: "✅ Appointment Confirmed" },
       { delay: 500, type: 'system', text: "📱 SMS confirmation sent" },
       { delay: 500, type: 'system', text: "📅 Added to calendar" },
       { delay: 2000, type: 'ai', text: "All set for Thursday at 2pm! You'll get a confirmation text shortly.\n\nBy the way, I can handle bookings like this for your real clients — 24/7. Most med spas start with my 14-day pilot to try me risk-free." },
-      { delay: 500, type: 'offer', text: "See How the Pilot Works", subtext: "Full setup in 72h — works with your booking system" }
+      { delay: 1000, type: 'offer', text: "See How the Pilot Works", subtext: "Full setup in 72h — works with your booking system" }
     ];
     
     let currentDelay = 0;
@@ -513,30 +513,6 @@ export default function InteractiveHero() {
             timestamp: Date.now()
           };
           setMessages(prev => [...prev, offerMessage]);
-          
-          // Set follow-up timer if offer is not clicked
-          const timer = setTimeout(() => {
-            if (!offerClicked) {
-              const followUpMessage: ChatMessage = {
-                id: `follow-up-1`,
-                type: 'ai',
-                text: "Want me to show you exactly how the pilot works?",
-                timestamp: Date.now()
-              };
-              setMessages(prev => [...prev, followUpMessage]);
-              
-              setTimeout(() => {
-                const followUpOffer: ChatMessage = {
-                  id: `follow-up-offer`,
-                  type: 'offer',
-                  text: "Yes, show me",
-                  timestamp: Date.now()
-                };
-                setMessages(prev => [...prev, followUpOffer]);
-              }, 500);
-            }
-          }, 10000); // 10 seconds delay
-          setFollowUpTimer(timer);
         }
       }, currentDelay);
     });

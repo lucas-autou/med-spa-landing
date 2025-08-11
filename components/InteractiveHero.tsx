@@ -64,9 +64,21 @@ export default function InteractiveHero() {
   const inputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   
+  // Calculate talking duration based on text length
+  const calculateTalkingDuration = (text: string): number => {
+    // Average reading speed: ~120 words per minute (slower for more natural feel)
+    // Average word length: ~5 characters
+    const words = text.length / 5;
+    const readingTimeMs = (words / 120) * 60 * 1000;
+    // Minimum 2 seconds, maximum 5 seconds for natural feel
+    // Add extra 500ms for better flow
+    return Math.min(Math.max(readingTimeMs + 500, 2000), 5000);
+  };
+  
   // Video and UI state
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [videoState, setVideoState] = useState<'idle' | 'listening' | 'talking' | 'wave'>('idle');
+  const [isMuted, setIsMuted] = useState(true); // Start muted by default
   
   // AI Chat state
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -194,6 +206,9 @@ export default function InteractiveHero() {
         setVideoState('talking');
         setMessages(prev => [...prev, aiMessage]);
         
+        // Calculate talking duration for this response
+        const talkingDuration = calculateTalkingDuration(aiResult.response);
+        
         // Update chips with AI response
         if (aiResult.chips && aiResult.chips.length > 0) {
           setCurrentChips(aiResult.chips.slice(0, 3)); // Max 3 chips
@@ -232,10 +247,10 @@ export default function InteractiveHero() {
           }, 1500);
         }
         
-        // Return to idle state
+        // Return to idle state after calculated talking duration
         setTimeout(() => {
           setVideoState('idle');
-        }, 2500);
+        }, talkingDuration);
       }, 800);
 
     } catch (error) {
@@ -254,9 +269,12 @@ export default function InteractiveHero() {
         setMessages(prev => [...prev, fallbackMessage]);
         setCurrentChips(['Schedule consult', 'See pricing', 'Try again']);
         
+        // Calculate talking duration for fallback message
+        const fallbackDuration = calculateTalkingDuration(fallbackMessage.text);
+        
         setTimeout(() => {
           setVideoState('idle');
-        }, 2000);
+        }, fallbackDuration);
       }, 500);
     }
   }, [messages]);
@@ -417,6 +435,15 @@ export default function InteractiveHero() {
     }
   };
   
+  // Toggle audio mute/unmute
+  const toggleAudio = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = !videoRef.current.muted;
+      setIsMuted(!isMuted);
+      trackEvent('audio_toggle', { muted: !isMuted });
+    }
+  };
+  
   // Scripted demo flow
   const startScriptedDemo = () => {
     trackEvent('demo_start' as any);
@@ -424,6 +451,12 @@ export default function InteractiveHero() {
     setIsScriptedDemo(true);
     setMessages([]);
     setVideoState('talking');  // Start with talking immediately
+    
+    // Unmute audio when demo starts
+    if (videoRef.current && isMuted) {
+      videoRef.current.muted = false;
+      setIsMuted(false);
+    }
     
     // Scripted conversation steps
     const scriptedSteps = [
@@ -460,10 +493,13 @@ export default function InteractiveHero() {
             setMessages(prev => [...prev, aiMessage]);
             setIsTyping(false);
             
-            // Return to idle after talking
+            // Calculate talking duration based on text length
+            const talkingDuration = calculateTalkingDuration(step.text);
+            
+            // Return to idle after talking for calculated duration
             setTimeout(() => {
               setVideoState('idle');
-            }, 1500);
+            }, talkingDuration);
           }, 500);
           
         } else if (step.type === 'user') {
@@ -529,7 +565,7 @@ export default function InteractiveHero() {
   const handleKeepChatting = () => {
     setIsAIMode(true);
     setShowFloatingCTA(true);
-    setVideoState('idle');
+    setVideoState('talking');
     trackEvent('keep_chatting_selected' as any);
     
     // Add a message to continue the conversation
@@ -540,6 +576,12 @@ export default function InteractiveHero() {
       timestamp: Date.now()
     };
     setMessages(prev => [...prev, continueMessage]);
+    
+    // Calculate talking duration and return to idle
+    const continueDuration = calculateTalkingDuration(continueMessage.text);
+    setTimeout(() => {
+      setVideoState('idle');
+    }, continueDuration);
     
     // Update chips for AI mode
     setCurrentChips(['How does Sarah work?', 'Pricing details', 'Setup process']);
@@ -630,15 +672,22 @@ export default function InteractiveHero() {
                   {/* Unmute Button with improved hit area */}
                   <div className="absolute top-3 right-3 z-20">
                     <button 
+                      onClick={toggleAudio}
                       className="w-10 h-10 bg-black/60 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/80 transition-colors focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2"
-                      title="Toggle audio (currently muted)"
-                      aria-label="Toggle audio for Sarah's voice"
-                      aria-pressed="false"
+                      title={isMuted ? "Unmute audio" : "Mute audio"}
+                      aria-label={isMuted ? "Unmute Sarah's voice" : "Mute Sarah's voice"}
+                      aria-pressed={!isMuted}
                       type="button"
                     >
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.766L4.146 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.146l4.237-3.766a1 1 0 011.617.766zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.983 5.983 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.984 3.984 0 00-1.172-2.828 1 1 0 010-1.415z" clipRule="evenodd" />
-                      </svg>
+                      {isMuted ? (
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.766L4.146 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.146l4.237-3.766a1 1 0 011.617.766zM12.293 7.293a1 1 0 011.414 0L15 8.586l1.293-1.293a1 1 0 111.414 1.414L16.414 10l1.293 1.293a1 1 0 01-1.414 1.414L15 11.414l-1.293 1.293a1 1 0 01-1.414-1.414L13.586 10l-1.293-1.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.766L4.146 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.146l4.237-3.766a1 1 0 011.617.766zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.983 5.983 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.984 3.984 0 00-1.172-2.828 1 1 0 010-1.415z" clipRule="evenodd" />
+                        </svg>
+                      )}
                     </button>
                   </div>
                   

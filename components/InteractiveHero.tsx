@@ -5,6 +5,7 @@ import { trackEvent } from '@/lib/analytics';
 import { useRouter } from 'next/navigation';
 import { classifyIntent, type IntentResult } from '@/lib/intentMapping';
 import PurchaseSlideOver from './PurchaseSlideOver';
+import { speak, stopSpeaking } from '@/lib/ttsService';
 
 // Voice interface types
 interface SpeechRecognitionEvent {
@@ -109,6 +110,8 @@ export default function InteractiveHero() {
   const [showDemoButton, setShowDemoButton] = useState(true);
   const [isAIMode, setIsAIMode] = useState(false);
   const [showFloatingCTA, setShowFloatingCTA] = useState(false);
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  const [showAudioActivated, setShowAudioActivated] = useState(false);
 
   // Add initial greeting message with auto-start
   useEffect(() => {
@@ -121,6 +124,9 @@ export default function InteractiveHero() {
     setMessages([initialMessage]);
     setVideoState('wave');
     trackEvent('hero_view');
+    
+    // Don't speak initial greeting automatically (respect muted state on load)
+    // TTS will only start after user interaction
     
     // Return to idle after wave
     setTimeout(() => {
@@ -193,7 +199,7 @@ export default function InteractiveHero() {
         shouldShowModal: (aiResult.followUpAction === 'booking' || aiResult.followUpAction === 'consult') && interactionCount >= 2
       });
       
-      setTimeout(() => {
+      setTimeout(async () => {
         const aiMessage: ChatMessage = {
           id: Date.now().toString() + '_ai',
           type: 'ai',
@@ -206,8 +212,32 @@ export default function InteractiveHero() {
         setVideoState('talking');
         setMessages(prev => [...prev, aiMessage]);
         
+        // Speak the response if audio is enabled and user has interacted
+        if (!isMuted && hasUserInteracted) {
+          const textToSpeak = aiResult.spokenResponse || aiResult.response;
+          console.log('🔊 TTS attempt:', { 
+            isMuted, 
+            hasUserInteracted,
+            hasSpokenResponse: !!aiResult.spokenResponse,
+            textLength: textToSpeak.length,
+            text: textToSpeak.substring(0, 50) + '...'
+          });
+          try {
+            await speak(textToSpeak);
+            console.log('✅ TTS successful');
+          } catch (error) {
+            console.error('❌ TTS error:', error);
+          }
+        } else {
+          console.log('🔇 TTS skipped:', { 
+            isMuted, 
+            hasUserInteracted,
+            reason: isMuted ? 'audio is muted' : 'no user interaction yet'
+          });
+        }
+        
         // Calculate talking duration for this response
-        const talkingDuration = calculateTalkingDuration(aiResult.response);
+        const talkingDuration = calculateTalkingDuration(aiResult.spokenResponse || aiResult.response);
         
         // Update chips with AI response
         if (aiResult.chips && aiResult.chips.length > 0) {
@@ -217,34 +247,11 @@ export default function InteractiveHero() {
         // Show purchase slide-over if appropriate
         if ((aiResult.followUpAction === 'booking' || aiResult.followUpAction === 'consult') && interactionCount >= 2) {
           console.log('🎯 Triggering slide-over modal!');
+          // Just show the modal without adding extra message
           setTimeout(() => {
-            const ctaMessage: ChatMessage = {
-              id: Date.now().toString() + '_cta',
-              type: 'ai',
-              text: "Perfect! I can get you set up right now. Let me show you our options - I have everything ready for you.",
-              timestamp: Date.now(),
-              isCtaMessage: true
-            };
-            setMessages(prev => [...prev, ctaMessage]);
-            
-            // Show purchase slide-over after a brief delay
-            setTimeout(() => {
-              setShowPurchaseModal(true);
-              // trackEvent('purchase_modal_shown', { trigger: 'ai_detected_intent' });
-            }, 2000);
-          }, 1500);
-        } else if (aiResult.followUpAction === 'booking' || aiResult.followUpAction === 'consult') {
-          // For earlier interactions, just add inline message without modal
-          setTimeout(() => {
-            const ctaMessage: ChatMessage = {
-              id: Date.now().toString() + '_cta',
-              type: 'ai',
-              text: "I'd love to help set this up for your med spa! Tell me a bit more about your needs and I can show you our options.",
-              timestamp: Date.now(),
-              isCtaMessage: true
-            };
-            setMessages(prev => [...prev, ctaMessage]);
-          }, 1500);
+            setShowPurchaseModal(true);
+            // trackEvent('purchase_modal_shown', { trigger: 'ai_detected_intent' });
+          }, 3500);
         }
         
         // Return to idle state after calculated talking duration
@@ -256,7 +263,7 @@ export default function InteractiveHero() {
     } catch (error) {
       console.error('AI chat error:', error);
       
-      setTimeout(() => {
+      setTimeout(async () => {
         const fallbackMessage: ChatMessage = {
           id: Date.now().toString() + '_ai_fallback',
           type: 'ai',
@@ -269,6 +276,16 @@ export default function InteractiveHero() {
         setMessages(prev => [...prev, fallbackMessage]);
         setCurrentChips(['Schedule consult', 'See pricing', 'Try again']);
         
+        // Speak fallback message if audio is enabled
+        if (!isMuted) {
+          const shortFallback = "I'm having a connection issue, but I can still help you!";
+          try {
+            await speak(shortFallback);
+          } catch (error) {
+            console.error('TTS error:', error);
+          }
+        }
+        
         // Calculate talking duration for fallback message
         const fallbackDuration = calculateTalkingDuration(fallbackMessage.text);
         
@@ -277,10 +294,30 @@ export default function InteractiveHero() {
         }, fallbackDuration);
       }, 500);
     }
-  }, [messages]);
+  }, [messages, isMuted, hasUserInteracted, interactionCount]);
 
   // Process user input (text or chip)
   const processUserInput = useCallback((input: string, isChipSelection: boolean = false) => {
+    // Mark that user has interacted and auto-unmute for TTS
+    if (!hasUserInteracted) {
+      setHasUserInteracted(true);
+      console.log('👤 First user interaction detected');
+      
+      // Auto-unmute audio on first interaction for better UX
+      if (isMuted && videoRef.current) {
+        videoRef.current.muted = false;
+        setIsMuted(false);
+        console.log('🔊 Auto-unmuted audio on first user interaction');
+        
+        // Show brief notification
+        setShowAudioActivated(true);
+        setTimeout(() => setShowAudioActivated(false), 3000);
+      }
+    }
+    
+    // Stop any ongoing speech when user interacts
+    stopSpeaking();
+    
     // Clear selected chip after short delay
     if (isChipSelection) {
       setSelectedChip(input);
@@ -294,13 +331,9 @@ export default function InteractiveHero() {
       return newCount;
     });
     
-    // In AI mode or after scripted demo, always use AI
-    if (isAIMode || (!isScriptedDemo && interactionCount > 0)) {
-      handleAIMessage(input);
-    } else {
-      handleAIMessage(input);
-    }
-  }, [handleAIMessage, isAIMode, isScriptedDemo, interactionCount]);
+    // Always use AI for processing messages
+    handleAIMessage(input);
+  }, [handleAIMessage, hasUserInteracted, isMuted]);
 
   // Handle voice input
   const handleVoiceInput = useCallback((transcript: string) => {
@@ -449,14 +482,20 @@ export default function InteractiveHero() {
     trackEvent('demo_start' as any);
     setShowDemoButton(false);
     setIsScriptedDemo(true);
+    setHasUserInteracted(true); // Mark as user interaction
     setMessages([]);
-    setVideoState('talking');  // Start with talking immediately
     
-    // Unmute audio when demo starts
-    if (videoRef.current && isMuted) {
+    // Unmute audio FIRST before any TTS attempts
+    if (videoRef.current) {
       videoRef.current.muted = false;
       setIsMuted(false);
+      console.log('🔊 Audio unmuted for demo - TTS will be active');
     }
+    
+    // Small delay to ensure state updates are processed
+    setTimeout(() => {
+      setVideoState('talking');  // Start with talking after unmute
+    }, 50);
     
     // Scripted conversation steps
     const scriptedSteps = [
@@ -483,7 +522,7 @@ export default function InteractiveHero() {
           setVideoState('talking');
           setIsTyping(true);
           
-          setTimeout(() => {
+          setTimeout(async () => {
             const aiMessage: ChatMessage = {
               id: `scripted_${index}`,
               type: 'ai',
@@ -492,6 +531,36 @@ export default function InteractiveHero() {
             };
             setMessages(prev => [...prev, aiMessage]);
             setIsTyping(false);
+            
+            // Speak the message if audio is enabled (demo unmutes automatically)
+            console.log('🎭 Demo TTS check:', { 
+              isMuted, 
+              stepIndex: index,
+              textLength: step.text.length 
+            });
+            
+            if (!isMuted) {
+              // For scripted demo, create appropriate short versions
+              let textToSpeak = step.text;
+              if (step.text.length > 100) {
+                if (step.text.includes('14-day pilot')) {
+                  textToSpeak = "I can handle bookings like this for your med spa 24/7. Want to try the pilot?";
+                } else if (step.text.includes('Thursday') && step.text.includes('Friday')) {
+                  textToSpeak = "I have Thursday at 2pm or Friday at 10am. Which works better?";
+                } else {
+                  textToSpeak = step.text.substring(0, 80) + "...";
+                }
+              }
+              
+              try {
+                await speak(textToSpeak);
+                console.log('✅ Demo TTS spoken successfully');
+              } catch (error) {
+                console.error('❌ TTS error in demo:', error);
+              }
+            } else {
+              console.log('🔇 Demo TTS skipped - still muted');
+            }
             
             // Calculate talking duration based on text length
             const talkingDuration = calculateTalkingDuration(step.text);
@@ -562,7 +631,7 @@ export default function InteractiveHero() {
   };
   
   // Handle keep chatting - switch to AI mode
-  const handleKeepChatting = () => {
+  const handleKeepChatting = async () => {
     setIsAIMode(true);
     setShowFloatingCTA(true);
     setVideoState('talking');
@@ -576,6 +645,16 @@ export default function InteractiveHero() {
       timestamp: Date.now()
     };
     setMessages(prev => [...prev, continueMessage]);
+    
+    // Speak the continue message if audio is enabled
+    if (!isMuted) {
+      const shortContinue = "Great! I'm here to answer any questions. What would you like to know?";
+      try {
+        await speak(shortContinue);
+      } catch (error) {
+        console.error('TTS error:', error);
+      }
+    }
     
     // Calculate talking duration and return to idle
     const continueDuration = calculateTalkingDuration(continueMessage.text);
@@ -616,6 +695,18 @@ export default function InteractiveHero() {
             </div>
           )}
         </div>
+
+        {/* Audio Activated Notification */}
+        {showAudioActivated && (
+          <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-fade-in">
+            <div className="bg-teal text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.766L4.146 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.146l4.237-3.766a1 1 0 011.617.766zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.983 5.983 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.984 3.984 0 00-1.172-2.828 1 1 0 010-1.415z" clipRule="evenodd" />
+              </svg>
+              <span className="font-medium">Audio activated - Sarah can speak now!</span>
+            </div>
+          </div>
+        )}
 
         {/* Unified Interactive Container - Larger for WOW */}
         <div className="bg-white rounded-3xl border border-border-default shadow-2xl overflow-hidden max-w-7xl mx-auto">

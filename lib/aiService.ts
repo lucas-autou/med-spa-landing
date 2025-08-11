@@ -8,6 +8,7 @@ const openai = new OpenAI({
 
 export interface AIResponse {
   response: string;
+  spokenResponse?: string;  // Short version for TTS
   chips?: string[];
   requiresConsult?: boolean;
   safetyFlags?: string[];
@@ -42,6 +43,8 @@ CONVERSATION STYLE:
 - Listen first, then guide appropriately
 - Don't be pushy about either service
 - If unsure, ask a clarifying question: "Are you looking to book a treatment, or are you interested in Sarah for your med spa?"
+- Keep responses concise when possible for better voice interaction
+- For complex information (prices, lists, schedules), provide complete details but structure them clearly
 
 Remember: Most users are spa clients by default. Only switch to business owner mode with clear signals.`;
 
@@ -99,6 +102,55 @@ function generateContextualChips(response: string, intent?: string): string[] {
 
   // Default chips
   return ['Book appointment', 'See pricing', 'Ask question'];
+}
+
+// Generate short spoken response for TTS
+function generateSpokenResponse(fullResponse: string, userMessage: string): string | undefined {
+  const lowerResponse = fullResponse.toLowerCase();
+  const lowerMessage = userMessage.toLowerCase();
+  
+  // Check if response is already short enough (less than 80 characters)
+  if (fullResponse.length < 80) {
+    return undefined; // Use the same response for both
+  }
+  
+  // Common patterns for long responses that need short versions
+  if (lowerMessage.includes('services') || lowerMessage.includes('what do you offer')) {
+    return "Sure! I'll list all our services in the chat for you.";
+  }
+  
+  if (lowerMessage.includes('price') && fullResponse.length > 100) {
+    return "Let me show you our pricing details in the chat.";
+  }
+  
+  if (lowerMessage.includes('hours') || lowerMessage.includes('when are you open')) {
+    return "I'll send you our complete schedule in the chat.";
+  }
+  
+  if (lowerResponse.includes('botox') && lowerResponse.includes('filler') && lowerResponse.includes('laser')) {
+    return "I've listed all our treatment options in the chat for you.";
+  }
+  
+  if (lowerMessage.includes('how') && lowerMessage.includes('work')) {
+    return "I'll explain everything in detail in the chat.";
+  }
+  
+  // For booking confirmations
+  if (lowerResponse.includes('confirmed') || lowerResponse.includes('all set')) {
+    return "Perfect! Your appointment is confirmed. Check the chat for details.";
+  }
+  
+  // For lists or multiple items
+  if (fullResponse.includes('•') || fullResponse.includes('\n-') || fullResponse.split('\n').length > 3) {
+    return "I've sent you the complete information in the chat.";
+  }
+  
+  // Default for any long response
+  if (fullResponse.length > 150) {
+    return "Let me explain that for you - check the chat for details.";
+  }
+  
+  return undefined;
 }
 
 // Determine follow-up action based on response - more sensitive to booking intent
@@ -196,12 +248,14 @@ export async function generateAIResponse(
     // Generate contextual chips and determine follow-up action
     const chips = generateContextualChips(aiResponse);
     const followUpAction = determineFollowUpAction(aiResponse);
+    const spokenResponse = generateSpokenResponse(aiResponse, userMessage);
 
     // Calculate confidence based on response quality (simple heuristic)
     const confidence = aiResponse.length > 20 && !aiResponse.includes("I don't know") ? 0.9 : 0.7;
 
     return {
       response: aiResponse,
+      spokenResponse,
       chips,
       requiresConsult: false,
       safetyFlags: [],

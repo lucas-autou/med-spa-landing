@@ -4,7 +4,7 @@ import { demoConfig, getDemoStep, getNextStep, type DemoStep } from '@/lib/demoC
 import { classifyIntent, type Intent, type IntentResult } from '@/lib/intentMapping';
 
 export type DemoState = 'idle' | 'running' | 'completed' | 'freechat' | 'interactive';
-export type VideoState = 'idle' | 'listening' | 'talking_neutral' | 'talking_animated' | 'talking_empathetic' | 'ack_nod' | 'wave';
+export type VideoState = 'idle' | 'listening' | 'talking_neutral' | 'talking_animated' | 'talking_empathetic' | 'ack_nod' | 'wave' | 'welcome' | 'pointing';
 
 interface DemoStore {
   // Demo state

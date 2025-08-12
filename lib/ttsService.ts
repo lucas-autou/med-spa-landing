@@ -1,11 +1,18 @@
-// Text-to-Speech Service using Web Speech API
-// Falls back to silent mode if not supported
+// Text-to-Speech Service with ElevenLabs integration
+// Falls back to Web Speech API if ElevenLabs is not available
+
+import { 
+  elevenLabsTTSClient, 
+  initializeElevenLabs, 
+  stopElevenLabsSpeaking 
+} from './elevenLabsTTSClient';
 
 export interface TTSOptions {
   rate?: number;      // Speed: 0.1 to 10 (default: 1)
   pitch?: number;     // Pitch: 0 to 2 (default: 1)
   volume?: number;    // Volume: 0 to 1 (default: 1)
   voice?: string;     // Voice name (default: system default)
+  useElevenLabs?: boolean; // Force ElevenLabs or browser TTS
 }
 
 class TTSService {
@@ -14,13 +21,27 @@ class TTSService {
   private selectedVoice: SpeechSynthesisVoice | null = null;
   private isSupported: boolean = false;
   private isSpeaking: boolean = false;
+  private useElevenLabs: boolean = false;
 
   constructor() {
     this.initialize();
   }
 
   private initialize() {
-    // Check if Web Speech API is available
+    // Try to initialize ElevenLabs first
+    if (typeof window !== 'undefined') {
+      try {
+        this.useElevenLabs = initializeElevenLabs();
+        if (this.useElevenLabs) {
+          console.log('🎙️ Using ElevenLabs for ultra-realistic TTS');
+        }
+      } catch (error) {
+        console.warn('Failed to initialize ElevenLabs:', error);
+        this.useElevenLabs = false;
+      }
+    }
+    
+    // Also initialize Web Speech API as fallback
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       this.synthesis = window.speechSynthesis;
       this.isSupported = true;
@@ -68,11 +89,32 @@ class TTSService {
     }
   }
 
-  public speak(text: string, options: TTSOptions = {}): Promise<void> {
+  public async speak(text: string, options: TTSOptions = {}): Promise<number> {
+    // Use ElevenLabs if available and not explicitly disabled
+    if (this.useElevenLabs && options.useElevenLabs !== false) {
+      try {
+        this.isSpeaking = true;
+        const duration = await elevenLabsTTSClient.speak(text, {
+          // Map browser TTS options to ElevenLabs options
+          stability: 0.5,
+          similarityBoost: 0.75,
+          style: 0.3,
+          useSpeakerBoost: true,
+        });
+        this.isSpeaking = false;
+        return duration;
+      } catch (error) {
+        console.warn('ElevenLabs TTS failed, falling back to browser TTS:', error);
+        this.isSpeaking = false;
+        // Continue to browser TTS fallback
+      }
+    }
+    
+    // Fallback to browser TTS
     return new Promise((resolve, reject) => {
       if (!this.isSupported || !this.synthesis) {
         console.warn('TTS not supported, skipping speech');
-        resolve();
+        resolve(0);
         return;
       }
 
@@ -124,9 +166,18 @@ class TTSService {
         console.log('🎵 TTS started speaking');
       };
       
+      const startTime = Date.now();
+      
+      // Track speech events for accurate timing
+      utterance.onstart = () => {
+        console.log('🎙️ Browser TTS started');
+      };
+      
       utterance.onend = () => {
         this.isSpeaking = false;
-        resolve();
+        const duration = Date.now() - startTime;
+        console.log('✅ Browser TTS completed - Duration:', duration, 'ms');
+        resolve(duration);
       };
       
       utterance.onerror = (event) => {
@@ -141,6 +192,12 @@ class TTSService {
   }
 
   public stop() {
+    // Stop ElevenLabs if it's playing
+    if (this.useElevenLabs) {
+      stopElevenLabsSpeaking();
+    }
+    
+    // Also stop browser TTS
     if (this.synthesis && this.isSpeaking) {
       this.synthesis.cancel();
       this.isSpeaking = false;
@@ -183,7 +240,7 @@ class TTSService {
 export const ttsService = new TTSService();
 
 // Helper function for easy use
-export async function speak(text: string, options?: TTSOptions): Promise<void> {
+export async function speak(text: string, options?: TTSOptions): Promise<number> {
   return ttsService.speak(text, options);
 }
 

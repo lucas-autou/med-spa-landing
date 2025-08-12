@@ -78,7 +78,7 @@ export default function InteractiveHero() {
   
   // Video and UI state
   const [videoLoaded, setVideoLoaded] = useState(false);
-  const [videoState, setVideoState] = useState<'idle' | 'listening' | 'talking' | 'wave'>('idle');
+  const [videoState, setVideoState] = useState<'idle' | 'listening' | 'talking' | 'wave' | 'welcome' | 'pointing'>('idle');
   const [isMuted, setIsMuted] = useState(true); // Start muted by default
   
   // Refs for real-time state access (avoid stale closures)
@@ -137,16 +137,17 @@ export default function InteractiveHero() {
       timestamp: Date.now()
     };
     setMessages([initialMessage]);
-    setVideoState('wave');
+    // Start with welcome animation instead of wave
+    setVideoState('welcome');
     trackEvent('hero_view');
     
     // Don't speak initial greeting automatically (respect muted state on load)
     // TTS will only start after user interaction
     
-    // Return to idle after wave
+    // Return to idle after welcome animation
     setTimeout(() => {
       setVideoState('idle');
-    }, 2000);
+    }, 3000); // Welcome animation is typically longer
     
     // Debug video element
     setTimeout(() => {
@@ -224,7 +225,23 @@ export default function InteractiveHero() {
         };
 
         setIsTyping(false);
-        setVideoState('talking');
+        
+        // Determine if we should use pointing animation
+        const responseText = aiResult.response;
+        const shouldUsePointing = 
+          responseText.length > 200 || // Long responses
+          responseText.toLowerCase().includes('vou colocar') || 
+          responseText.toLowerCase().includes('no chat') ||
+          responseText.toLowerCase().includes('abaixo') ||
+          responseText.toLowerCase().includes('lista') ||
+          responseText.toLowerCase().includes('opções') ||
+          responseText.toLowerCase().includes('informações') ||
+          responseText.toLowerCase().includes('here are') ||
+          responseText.toLowerCase().includes('let me show') ||
+          responseText.toLowerCase().includes('below');
+        
+        // Set appropriate video state
+        setVideoState(shouldUsePointing ? 'pointing' : 'talking');
         setMessages(prev => [...prev, aiMessage]);
         
         // CRITICAL: Use refs for real-time state values (avoid stale closure)
@@ -237,6 +254,7 @@ export default function InteractiveHero() {
           hasUserInteracted_state: hasUserInteracted,
           hasUserInteracted_ref: hasUserInteractedRef.current,
           hasSpokenResponse: !!aiResult.spokenResponse,
+          usingPointingAnimation: shouldUsePointing,
           timestamp: Date.now()
         });
         
@@ -262,7 +280,9 @@ export default function InteractiveHero() {
         }
         
         // Calculate talking duration for this response
-        const talkingDuration = calculateTalkingDuration(aiResult.spokenResponse || aiResult.response);
+        const talkingDuration = shouldUsePointing 
+          ? calculateTalkingDuration(aiResult.spokenResponse || aiResult.response) * 1.2 // Slightly longer for pointing
+          : calculateTalkingDuration(aiResult.spokenResponse || aiResult.response);
         
         // Update chips with AI response
         if (aiResult.chips && aiResult.chips.length > 0) {
@@ -279,7 +299,7 @@ export default function InteractiveHero() {
           }, 3500);
         }
         
-        // Return to idle state after calculated talking duration
+        // Return to idle state after talking duration
         setTimeout(() => {
           setVideoState('idle');
         }, talkingDuration);
@@ -442,6 +462,10 @@ export default function InteractiveHero() {
           return '/videos/talking_neutral.mp4';
         case 'wave':
           return '/videos/wave.mp4';
+        case 'welcome':
+          return '/videos/welcome.mp4';
+        case 'pointing':
+          return '/videos/pointing.mp4';
         case 'idle':
         default:
           return '/videos/idle.mp4';

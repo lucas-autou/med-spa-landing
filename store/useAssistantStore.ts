@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { trackEvent } from '@/lib/analytics';
 
-export type AvatarState = 'idle' | 'listening' | 'talking' | 'ack_nod';
+export type AvatarState = 'idle' | 'listening' | 'talking' | 'ack_nod' | 'welcome' | 'pointing';
 
 export type LeadData = {
   service?: string;

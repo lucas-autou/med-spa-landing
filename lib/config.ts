@@ -51,6 +51,8 @@ export const config = {
         animated: "/videos/talking_animated.mp4",
         empathetic: "/videos/talking_empathetic.mp4",
       },
+      welcome: "/videos/welcome.mp4",
+      pointing: "/videos/pointing.mp4",
     },
   },
 
@@ -59,5 +61,17 @@ export const config = {
     leadVolume: ["<20 leads/mo", "20–50", "50–100", "100+"],
     urgency: ["This week", "Next 2 weeks", "Next month", "Just exploring"],
     cities: ["Miami", "LA", "Dallas", "NYC"],
+  },
+
+  tts: {
+    elevenLabsApiKey: process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY,
+    // Voice IDs for different emotions/contexts
+    voices: {
+      default: '21m00Tcm4TlvDq8ikWAM',    // Rachel - warm, conversational
+      friendly: 'EXAVITQu4vr4xnSDxMaL',   // Bella - young, friendly
+      professional: 'MF3mGyEYCl7XYWbV9V6O', // Elli - calm, professional
+      empathetic: 'piTKgcLEGmPE4e6mEKli',  // Nicole - mature, trustworthy
+    },
+    model: 'eleven_turbo_v2_5', // Fast model with good quality
   },
 };

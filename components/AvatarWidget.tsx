@@ -46,6 +46,8 @@ export default function AvatarWidget({ className = '', autoStart = true, useDemo
         config.avatar.videos.idle,
         config.avatar.videos.listening,
         config.avatar.videos.talking.neutral,
+        config.avatar.videos.welcome,
+        config.avatar.videos.pointing,
       ];
 
       Promise.all(
@@ -98,6 +100,12 @@ export default function AvatarWidget({ className = '', autoStart = true, useDemo
         break;
       case 'wave':
         newVideoSrc = config.avatar.videos.talking.animated; // Use animated for wave
+        break;
+      case 'welcome':
+        newVideoSrc = config.avatar.videos.welcome;
+        break;
+      case 'pointing':
+        newVideoSrc = config.avatar.videos.pointing;
         break;
       default:
         newVideoSrc = config.avatar.videos.idle;

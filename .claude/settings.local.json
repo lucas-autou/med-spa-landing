@@ -5,7 +5,8 @@
       "Bash(test:*)",
       "Bash(npm run build:*)",
       "Bash(npm run type-check:*)",
-      "Bash(true)"
+      "Bash(true)",
+      "Bash(npm install)"
     ],
     "deny": [],
     "ask": []

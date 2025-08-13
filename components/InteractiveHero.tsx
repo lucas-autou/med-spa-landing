@@ -566,8 +566,54 @@ export default function InteractiveHero() {
     }
   };
   
+  // Unlock audio context for Safari/iOS
+  const unlockAudioContext = async () => {
+    try {
+      // Detect Safari/iOS
+      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+      
+      console.log('🔍 Browser detection:', { isSafari, isIOS, userAgent: navigator.userAgent });
+      
+      // 1. Create and unlock Web Audio Context
+      const AudioContext = (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (AudioContext) {
+        const audioContext = new AudioContext();
+        
+        // Create silent sound to unlock
+        const buffer = audioContext.createBuffer(1, 1, 22050);
+        const source = audioContext.createBufferSource();
+        source.buffer = buffer;
+        source.connect(audioContext.destination);
+        source.start(0);
+        
+        console.log('✅ Web Audio Context unlocked');
+      }
+      
+      // 2. Unlock Speech Synthesis as well
+      if (window.speechSynthesis) {
+        // Speak something silent to activate
+        const utterance = new SpeechSynthesisUtterance(' ');
+        utterance.volume = 0.01; // Almost silent
+        utterance.lang = 'en-US';
+        window.speechSynthesis.speak(utterance);
+        
+        // Wait a moment to ensure activation
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        console.log('✅ Speech Synthesis unlocked');
+      }
+      
+      console.log('✅ Audio fully unlocked for Safari/iOS');
+    } catch (error) {
+      console.warn('Error unlocking audio:', error);
+    }
+  };
+  
   // Scripted demo flow - REFACTORED for perfect sync
   const startScriptedDemo = async () => {
+    // FIRST: Unlock audio context for Safari/iOS
+    await unlockAudioContext();
     trackEvent('demo_start' as any);
     setShowDemoButton(false);
     setIsScriptedDemo(true);
@@ -847,6 +893,8 @@ export default function InteractiveHero() {
                     loop
                     muted
                     playsInline
+                    webkit-playsinline="true"
+                    x-webkit-airplay="allow"
                     poster="/videos/poster.jpg"
                     className="absolute inset-0 w-full h-full object-cover z-0"
                     onLoadedData={() => {

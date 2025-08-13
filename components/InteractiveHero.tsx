@@ -847,7 +847,6 @@ export default function InteractiveHero() {
                     loop
                     muted
                     playsInline
-                    loading="lazy"
                     poster="/videos/poster.jpg"
                     className="absolute inset-0 w-full h-full object-cover z-0"
                     onLoadedData={() => {
@@ -1101,7 +1100,7 @@ export default function InteractiveHero() {
                     <button
                       type="submit"
                       disabled={!textInput.trim()}
-                      className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed text-gray-600 rounded-2xl text-sm sm:text-base font-medium transition-all duration-200">
+                      className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed text-gray-600 rounded-2xl text-sm sm:text-base font-medium transition-all duration-200"
                       title="Send message"
                     >
                       Send

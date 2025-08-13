@@ -128,7 +128,7 @@ class TTSService {
             this.loadVoices();
             if (this.voices.length === 0) {
               console.warn('❌ No voices available, skipping TTS');
-              resolve();
+              resolve(0);
               return;
             }
             // Retry speak with voices loaded

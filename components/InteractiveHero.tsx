@@ -638,6 +638,8 @@ export default function InteractiveHero() {
               textToSpeak = "I can handle bookings like this for your med spa 24/7. Want to try the pilot?";
             } else if (step.text.includes('Thursday') && step.text.includes('Friday')) {
               textToSpeak = "I have Thursday at 2pm or Friday at 10am. Which works better?";
+            } else if (step.text.includes('Thursday') && step.text.includes('confirmation text')) {
+              textToSpeak = "Excellent! You're all set for Thursday at 2pm. You'll receive a confirmation text with all details.";
             } else {
               textToSpeak = step.text.substring(0, 80) + "...";
             }

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 
 interface AvatarPlaceholderProps {
-  state: 'idle' | 'listening' | 'talking' | 'ack_nod';
+  state: 'idle' | 'listening' | 'talking' | 'ack_nod' | 'welcome' | 'pointing';
   className?: string;
 }
 
@@ -43,6 +43,20 @@ export default function AvatarPlaceholder({ state, className = '' }: AvatarPlace
           ring: 'ring-teal/30',
           animation: 'animate-pulse'
         };
+      case 'welcome':
+        return {
+          icon: '👋',
+          bg: 'from-teal/30 to-blush/30',
+          ring: 'ring-teal/60',
+          animation: 'animate-bounce'
+        };
+      case 'pointing':
+        return {
+          icon: '👉',
+          bg: 'from-teal/25 to-teal-light/60',
+          ring: 'ring-teal/40',
+          animation: 'animate-pulse'
+        };
       default: // idle
         return {
           icon: '😊',
@@ -76,14 +90,17 @@ export default function AvatarPlaceholder({ state, className = '' }: AvatarPlace
         <div className="absolute top-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm font-medium">
           {state === 'idle' && '💤 Ready'}
           {state === 'listening' && '👂 Listening'}
-          {state.startsWith('talking') && '💬 Speaking'}
+          {state === 'talking' && '💬 Speaking'}
+          {state === 'ack_nod' && '😊 Acknowledging'}
+          {state === 'welcome' && '👋 Welcome'}
+          {state === 'pointing' && '👉 Pointing'}
         </div>
 
         {/* Breathing/pulse effect overlay */}
         <div className="absolute inset-0 rounded-full bg-gradient-to-t from-white/10 via-transparent to-transparent pointer-events-none" />
         
         {/* Animated ring for active states */}
-        {(state === 'listening' || state.startsWith('talking')) && (
+        {(state === 'listening' || state === 'talking' || state === 'welcome') && (
           <div className="absolute inset-0 rounded-full animate-ping border-2 border-teal/30" />
         )}
       </div>

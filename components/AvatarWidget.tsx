@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAssistantStore, type AvatarState } from '@/store/useAssistantStore';
 import { useDemoStore, type VideoState } from '@/store/useDemoStore';
 import { trackAvatarEvent } from '@/lib/analytics';
@@ -15,9 +15,14 @@ interface AvatarWidgetProps {
 
 export default function AvatarWidget({ className = '', autoStart = true, useDemo = false }: AvatarWidgetProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const nextVideoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [useVideoMode, setUseVideoMode] = useState(false);
   const [currentVideoSrc, setCurrentVideoSrc] = useState<string>(config.avatar.videos.idle);
+  const [nextVideoSrc, setNextVideoSrc] = useState<string>('');
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const preloadedVideos = useRef<Map<string, HTMLVideoElement>>(new Map());
   
   const {
     avatarState,
@@ -31,38 +36,64 @@ export default function AvatarWidget({ className = '', autoStart = true, useDemo
 
   const { videoState, demoState } = useDemoStore();
 
+  // Preload all videos for smooth transitions
+  const preloadVideos = useCallback(async () => {
+    const videos = [
+      config.avatar.videos.idle,
+      config.avatar.videos.listening,
+      config.avatar.videos.talking.neutral,
+      config.avatar.videos.talking.animated,
+      config.avatar.videos.talking.empathetic,
+      config.avatar.videos.welcome,
+      config.avatar.videos.pointing,
+    ];
+
+    const loadPromises = videos.map(src => {
+      return new Promise<void>((resolve) => {
+        const video = document.createElement('video');
+        video.src = src;
+        video.preload = 'auto';
+        video.loop = true;
+        video.muted = true;
+        video.playsInline = true;
+        
+        video.onloadeddata = () => {
+          preloadedVideos.current.set(src, video);
+          resolve();
+        };
+        
+        video.onerror = () => {
+          console.warn(`Failed to preload video: ${src}`);
+          resolve();
+        };
+        
+        // Start loading
+        video.load();
+      });
+    });
+
+    try {
+      await Promise.all(loadPromises);
+      return true;
+    } catch (error) {
+      console.error('Error preloading videos:', error);
+      return false;
+    }
+  }, []);
+
   // Check if videos exist, fallback to placeholder
   useEffect(() => {
     // Try to load the first video to see if videos are available
     const testVideo = document.createElement('video');
     testVideo.src = config.avatar.videos.idle;
     
-    testVideo.onloadeddata = () => {
+    testVideo.onloadeddata = async () => {
       // Videos are available, use video mode
       setUseVideoMode(true);
       
       // Preload all videos
-      const videos = [
-        config.avatar.videos.idle,
-        config.avatar.videos.listening,
-        config.avatar.videos.talking.neutral,
-        config.avatar.videos.welcome,
-        config.avatar.videos.pointing,
-      ];
-
-      Promise.all(
-        videos.map(src => {
-          return new Promise((resolve) => {
-            const video = document.createElement('video');
-            video.src = src;
-            video.preload = 'auto';
-            video.onloadeddata = () => resolve(src);
-            video.onerror = () => resolve(src);
-          });
-        })
-      ).then(() => {
-        setIsLoaded(true);
-      });
+      await preloadVideos();
+      setIsLoaded(true);
     };
     
     testVideo.onerror = () => {
@@ -70,7 +101,28 @@ export default function AvatarWidget({ className = '', autoStart = true, useDemo
       setUseVideoMode(false);
       setIsLoaded(true);
     };
-  }, []);
+  }, [preloadVideos]);
+
+  // Smooth crossfade transition between videos
+  const transitionToVideo = useCallback((newSrc: string) => {
+    if (isTransitioning || currentVideoSrc === newSrc) return;
+    
+    setIsTransitioning(true);
+    setNextVideoSrc(newSrc);
+    
+    // Start playing the next video (hidden)
+    if (nextVideoRef.current) {
+      nextVideoRef.current.play().catch(console.warn);
+    }
+    
+    // Perform crossfade after a brief moment to ensure next video is ready
+    setTimeout(() => {
+      // Swap the videos
+      setCurrentVideoSrc(newSrc);
+      setNextVideoSrc('');
+      setIsTransitioning(false);
+    }, 100);
+  }, [currentVideoSrc, isTransitioning]);
 
   // Handle avatar state changes and video switching
   useEffect(() => {
@@ -112,9 +164,9 @@ export default function AvatarWidget({ className = '', autoStart = true, useDemo
     }
 
     if (currentVideoSrc !== newVideoSrc) {
-      setCurrentVideoSrc(newVideoSrc);
+      transitionToVideo(newVideoSrc);
     }
-  }, [avatarState, videoState, useDemo, isLoaded, currentVideoSrc]);
+  }, [avatarState, videoState, useDemo, isLoaded, currentVideoSrc, transitionToVideo]);
 
   // Auto-start conversation after component mounts
   useEffect(() => {
@@ -169,18 +221,38 @@ export default function AvatarWidget({ className = '', autoStart = true, useDemo
     <div className={`flex flex-col items-center space-y-6 ${className}`}>
       {/* Avatar Display */}
       {useVideoMode ? (
-        <div className="relative w-72 h-96 md:w-80 md:h-[432px] rounded-2xl overflow-hidden bg-background-card border border-border-light shadow-lg">
+        <div ref={containerRef} className="relative w-72 h-96 md:w-80 md:h-[432px] rounded-2xl overflow-hidden bg-background-card border border-border-light shadow-lg">
           {isLoaded ? (
-            <video
-              ref={videoRef}
-              src={currentVideoSrc}
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="w-full h-full object-cover"
-              onLoadedData={handleVideoLoad}
-            />
+            <>
+              {/* Current video */}
+              <video
+                ref={videoRef}
+                src={currentVideoSrc}
+                autoPlay
+                loop
+                muted
+                playsInline
+                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ease-in-out ${
+                  isTransitioning && nextVideoSrc ? 'opacity-0' : 'opacity-100'
+                }`}
+                onLoadedData={handleVideoLoad}
+              />
+              
+              {/* Next video (for crossfade) */}
+              {nextVideoSrc && (
+                <video
+                  ref={nextVideoRef}
+                  src={nextVideoSrc}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ease-in-out ${
+                    isTransitioning ? 'opacity-100' : 'opacity-0'
+                  }`}
+                />
+              )}
+            </>
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               <div className="animate-pulse text-text-secondary">Loading avatar...</div>

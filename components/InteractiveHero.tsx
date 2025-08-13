@@ -78,7 +78,7 @@ export default function InteractiveHero() {
   
   // Video and UI state
   const [videoLoaded, setVideoLoaded] = useState(false);
-  const [videoState, setVideoState] = useState<'idle' | 'listening' | 'talking' | 'wave' | 'welcome' | 'pointing'>('idle');
+  const [videoState, setVideoState] = useState<'idle' | 'listening' | 'talking' | 'wave' | 'welcome' | 'pointing' | 'waving2'>('idle');
   const [isMuted, setIsMuted] = useState(true); // Start muted by default
   
   // Refs for real-time state access (avoid stale closures)
@@ -489,6 +489,8 @@ export default function InteractiveHero() {
           return '/videos/welcome.mp4';
         case 'pointing':
           return '/videos/pointing.mp4';
+        case 'waving2':
+          return '/videos/waving2.mp4';
         case 'idle':
         default:
           return '/videos/idle.mp4';
@@ -606,7 +608,9 @@ export default function InteractiveHero() {
       
       if (step.type === 'ai') {
         // Show typing indicator
-        setVideoState('talking');
+        // Use waving2 animation for the first AI message in demo
+        const isFirstMessage = index === 0;
+        setVideoState(isFirstMessage ? 'waving2' : 'talking');
         setIsTyping(true);
         
         // Small delay for typing effect

@@ -1,0 +1,96 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "outputDirectory": ".next",
+  
+  "regions": ["iad1"],
+  
+  "env": {
+    "NODE_ENV": "production"
+  },
+  
+  "build": {
+    "env": {
+      "NODE_ENV": "production"
+    }
+  },
+  
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        }
+      ]
+    },
+    {
+      "source": "/videos/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/(.*).mp4",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        },
+        {
+          "key": "Accept-Ranges",
+          "value": "bytes"
+        }
+      ]
+    }
+  ],
+  
+  "rewrites": [
+    {
+      "source": "/api/stripe/webhook",
+      "destination": "/api/stripe/webhooks"
+    }
+  ],
+  
+  "functions": {
+    "app/api/chat/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/create-checkout-session/route.ts": {
+      "maxDuration": 10
+    },
+    "app/api/lead/route.ts": {
+      "maxDuration": 10
+    }
+  },
+  
+  "crons": []
+}

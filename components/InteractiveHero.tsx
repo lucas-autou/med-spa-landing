@@ -784,11 +784,11 @@ export default function InteractiveHero() {
     <section id="hero" className="min-h-screen bg-gradient-to-b from-background-primary to-background-secondary">
       <div className="container mx-auto px-4 py-4 md:py-6 lg:py-8 max-w-7xl">
         {/* Hero Content - Smaller, integrated */}
-        <div className="mb-6 text-center max-w-5xl mx-auto">
-          <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-text-primary mb-3">
+        <div className="mb-4 sm:mb-5 md:mb-6 text-center max-w-5xl mx-auto">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-text-primary mb-2 sm:mb-3">
             Never Miss a Booking
           </h1>
-          <p className="text-lg md:text-xl text-text-secondary mb-4">
+          <p className="text-base sm:text-lg md:text-xl text-text-secondary mb-3 sm:mb-4">
             Sarah answers, qualifies, and books clients for you 24/7 — even after hours.
           </p>
           
@@ -829,8 +829,8 @@ export default function InteractiveHero() {
           
             {/* Left: Avatar Video */}
             <div className="relative">
-              {/* Video Container - Larger for impact */}
-              <div className="relative w-full min-h-[500px] md:min-h-[650px] lg:min-h-[750px] xl:min-h-[800px] bg-gray-100 rounded-l-3xl lg:rounded-r-none overflow-hidden">
+              {/* Video Container - Optimized for mobile visibility */}
+              <div className="relative w-full min-h-[350px] sm:min-h-[450px] md:min-h-[650px] lg:min-h-[750px] xl:min-h-[800px] bg-gray-100 rounded-l-3xl lg:rounded-r-none overflow-hidden">
                   {!videoLoaded && (
                     <img 
                       src="/videos/poster.jpg" 
@@ -917,10 +917,10 @@ export default function InteractiveHero() {
                 </div>
               </div>
 
-            {/* Right: Chat Interface - Match video height */}
-            <div className="flex flex-col min-h-[500px] md:min-h-[650px] lg:min-h-[750px] xl:min-h-[800px] p-6 lg:p-8 lg:border-l lg:border-border-default bg-gray-50 lg:bg-transparent">
+            {/* Right: Chat Interface - Optimized for mobile */}
+            <div className="flex flex-col min-h-[350px] sm:min-h-[450px] md:min-h-[650px] lg:min-h-[750px] xl:min-h-[800px] p-4 sm:p-5 md:p-6 lg:p-8 lg:border-l lg:border-border-default bg-gray-50 lg:bg-transparent">
               {/* Header */}
-              <div className="mb-6">
+              <div className="mb-3 sm:mb-4 md:mb-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className="text-sm text-text-primary font-medium">
@@ -931,10 +931,10 @@ export default function InteractiveHero() {
                 </div>
               </div>
 
-              {/* Chat Interface - Fixed height */}
+              {/* Chat Interface - Reduced height for mobile */}
               <div 
                 ref={chatRef}
-                className="h-[450px] lg:h-[500px] overflow-y-auto bg-white rounded-2xl border border-border-light p-6 mb-6 space-y-4"
+                className="h-[250px] sm:h-[320px] md:h-[400px] lg:h-[500px] overflow-y-auto bg-white rounded-2xl border border-border-light p-4 sm:p-5 md:p-6 mb-4 sm:mb-5 md:mb-6 space-y-3 sm:space-y-4"
                 role="log"
                 aria-live="polite"
                 aria-label="AI conversation"
@@ -985,12 +985,12 @@ export default function InteractiveHero() {
                           </div>
                         )}
                         
-                        <div className={`max-w-[80%] px-4 py-3 rounded-2xl ${
+                        <div className={`max-w-[85%] sm:max-w-[80%] px-3 sm:px-4 py-2 sm:py-3 rounded-2xl ${
                           message.type === 'user' 
                             ? 'bg-teal text-white rounded-tr-none' 
                             : 'bg-gray-50 text-text-primary rounded-tl-none'
                         }`}>
-                          <p className={`text-sm leading-relaxed whitespace-pre-wrap ${
+                          <p className={`text-xs sm:text-sm leading-relaxed whitespace-pre-wrap ${
                             message.type === 'user' ? 'text-white' : 'text-text-primary'
                           }`}>
                             {message.text}
@@ -1033,8 +1033,8 @@ export default function InteractiveHero() {
               </div>
 
               {/* Action Chips */}
-              <div className="mb-6">
-                <div className="flex flex-wrap gap-2">
+              <div className="mb-3 sm:mb-4 md:mb-6">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   {currentChips.map((chipLabel, index) => {
                     const isSelected = selectedChip === chipLabel;
                     
@@ -1042,7 +1042,7 @@ export default function InteractiveHero() {
                       <button
                         key={index}
                         onClick={() => handleChipClick(chipLabel)}
-                        className={`text-sm px-4 py-2 font-medium rounded-full transition-all duration-200 ${
+                        className={`text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 font-medium rounded-full transition-all duration-200 ${
                           isSelected
                             ? 'bg-teal text-white transform scale-105 shadow-lg'
                             : 'bg-white border border-gray-200 text-text-primary hover:border-teal hover:shadow-md'
@@ -1058,15 +1058,15 @@ export default function InteractiveHero() {
               </div>
 
               {/* Text Input */}
-              <div className="mb-4">
+              <div className="mb-2 sm:mb-3 md:mb-4">
                 <form onSubmit={handleTextSubmit}>
-                  <div className="flex items-center gap-2 bg-white border-2 border-teal rounded-3xl px-4 py-3 shadow-sm transition-all duration-200">
+                  <div className="flex items-center gap-2 bg-white border-2 border-teal rounded-3xl px-3 sm:px-4 py-2 sm:py-3 shadow-sm transition-all duration-200">
                     <input
                       ref={inputRef}
                       type="text"
                       value={textInput}
                       onChange={(e) => setTextInput(e.target.value)}
-                      placeholder="Tell Sarah what you're interested in..."
+                      placeholder="Type or tap a suggestion..."
                       className="flex-1 text-text-primary placeholder-text-tertiary focus:outline-none text-sm"
                       maxLength={200}
                     />
@@ -1101,7 +1101,7 @@ export default function InteractiveHero() {
                     <button
                       type="submit"
                       disabled={!textInput.trim()}
-                      className="px-4 py-2 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed text-gray-600 rounded-2xl font-medium transition-all duration-200"
+                      className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed text-gray-600 rounded-2xl text-sm sm:text-base font-medium transition-all duration-200">
                       title="Send message"
                     >
                       Send
@@ -1121,7 +1121,7 @@ export default function InteractiveHero() {
 
               {/* Footer microcopy */}
               <div className="mt-auto">
-                <div className="text-center text-xs text-text-tertiary py-2">
+                <div className="text-center text-[10px] sm:text-xs text-text-tertiary py-1 sm:py-2">
                   Live in 72 hours on a branded page · Optional website embed
                 </div>
               </div>

@@ -127,6 +127,56 @@ export default function FAQ() {
           ))}
         </div>
 
+        {/* Still have questions? Ask Sarah video section */}
+        <div className="mt-16 mb-12 flex justify-center">
+          {/* Sarah Video Container with overlaid text and button */}
+          <div className="relative w-full max-w-2xl md:max-w-3xl lg:max-w-4xl aspect-[4/5] md:aspect-[16/10] rounded-3xl overflow-hidden bg-gray-100 border border-border-light shadow-2xl">
+            <video
+              src="/videos/idle.mp4"
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover"
+              aria-label="Sarah virtual assistant - idle animation"
+            />
+            
+            {/* Gradient overlays for text readability */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/50 pointer-events-none" />
+            
+            {/* Text at the top */}
+            <div className="absolute top-0 left-0 right-0 pt-8 md:pt-12 px-6 text-center">
+              <h3 className="text-3xl md:text-4xl font-bold text-white mb-2 drop-shadow-lg">
+                Still have questions?
+              </h3>
+              <p className="text-xl md:text-2xl text-white/90 drop-shadow-lg">
+                Just ask Sarah.
+              </p>
+            </div>
+            
+            {/* Button at the bottom */}
+            <div className="absolute bottom-0 left-0 right-0 pb-12 md:pb-16 px-6 flex justify-center">
+              {/* Ask Sarah Button */}
+              <button
+                onClick={() => {
+                  trackEvent('ask_sarah_clicked', { location: 'faq_section' });
+                  // Smooth scroll to hero section
+                  const heroSection = document.getElementById('hero');
+                  if (heroSection) {
+                    heroSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  } else {
+                    // Fallback to scroll to top
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
+                }}
+                className="px-10 py-4 bg-teal hover:bg-teal-hover text-white font-bold text-lg rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200 backdrop-blur-sm"
+              >
+                Ask Sarah
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Sarah's nudge to convert */}
         <div className="text-center mt-16 p-8 bg-gradient-to-br from-teal/5 to-white border border-teal/20 rounded-2xl shadow-lg">
           <div className="flex justify-center mb-4">

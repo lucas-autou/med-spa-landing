@@ -78,7 +78,7 @@ export default function InteractiveHero() {
   
   // Video and UI state
   const [videoLoaded, setVideoLoaded] = useState(false);
-  const [videoState, setVideoState] = useState<'idle' | 'listening' | 'talking' | 'wave' | 'welcome' | 'pointing'>('idle');
+  const [videoState, setVideoState] = useState<'idle' | 'listening' | 'talking' | 'wave' | 'welcome' | 'pointing' | 'waving2'>('idle');
   const [isMuted, setIsMuted] = useState(true); // Start muted by default
   
   // Refs for real-time state access (avoid stale closures)
@@ -258,6 +258,9 @@ export default function InteractiveHero() {
           timestamp: Date.now()
         });
         
+        // SYNC FIX: Wait for audio to actually end before returning to idle
+        // This ensures perfect synchronization between audio and video
+        
         // Speak the response if audio is enabled and user has interacted
         if (canSpeak) {
           const textToSpeak = aiResult.spokenResponse || aiResult.response;
@@ -266,10 +269,21 @@ export default function InteractiveHero() {
             text: textToSpeak.substring(0, 50) + '...'
           });
           try {
+            // speak() now resolves only when audio actually ends
             await speak(textToSpeak);
-            console.log('✅ TTS successful');
+            console.log('✅ TTS completed - Audio has finished playing');
+            // Return to idle immediately after audio ends
+            setVideoState('idle');
           } catch (error) {
             console.error('❌ TTS error:', error);
+            // Fallback: use calculated duration if TTS fails
+            const fallbackDuration = shouldUsePointing 
+              ? calculateTalkingDuration(aiResult.spokenResponse || aiResult.response) * 1.2
+              : calculateTalkingDuration(aiResult.spokenResponse || aiResult.response);
+            console.log('⚠️ Using fallback duration:', fallbackDuration, 'ms');
+            setTimeout(() => {
+              setVideoState('idle');
+            }, fallbackDuration);
           }
         } else {
           console.log('🔇 TTS skipped - reasons:', { 
@@ -277,12 +291,15 @@ export default function InteractiveHero() {
             hasUserInteracted_ref: hasUserInteractedRef.current,
             reason: isMutedRef.current ? 'audio is muted' : 'no user interaction yet'
           });
+          // No audio playing, use calculated duration for video timing
+          const silentDuration = shouldUsePointing 
+            ? calculateTalkingDuration(aiResult.spokenResponse || aiResult.response) * 1.2
+            : calculateTalkingDuration(aiResult.spokenResponse || aiResult.response);
+          console.log('🔇 Silent mode - Using calculated duration:', silentDuration, 'ms');
+          setTimeout(() => {
+            setVideoState('idle');
+          }, silentDuration);
         }
-        
-        // Calculate talking duration for this response
-        const talkingDuration = shouldUsePointing 
-          ? calculateTalkingDuration(aiResult.spokenResponse || aiResult.response) * 1.2 // Slightly longer for pointing
-          : calculateTalkingDuration(aiResult.spokenResponse || aiResult.response);
         
         // Update chips with AI response
         if (aiResult.chips && aiResult.chips.length > 0) {
@@ -298,11 +315,6 @@ export default function InteractiveHero() {
             // trackEvent('purchase_modal_shown', { trigger: 'ai_detected_intent' });
           }, 3500);
         }
-        
-        // Return to idle state after talking duration
-        setTimeout(() => {
-          setVideoState('idle');
-        }, talkingDuration);
       }, 800);
 
     } catch (error) {
@@ -321,6 +333,8 @@ export default function InteractiveHero() {
         setMessages(prev => [...prev, fallbackMessage]);
         setCurrentChips(['Schedule consult', 'See pricing', 'Try again']);
         
+        // SYNC FIX: Wait for audio to actually end in fallback scenario
+        
         // Speak fallback message if audio is enabled
         const fallbackCanSpeak = !isMutedRef.current && hasUserInteractedRef.current;
         console.log('🚨 Fallback TTS check:', { 
@@ -332,19 +346,28 @@ export default function InteractiveHero() {
         if (fallbackCanSpeak) {
           const shortFallback = "I'm having a connection issue, but I can still help you!";
           try {
+            // speak() now resolves only when audio actually ends
             await speak(shortFallback);
-            console.log('✅ Fallback TTS spoken');
+            console.log('✅ Fallback TTS completed - Audio has finished');
+            // Return to idle immediately after audio ends
+            setVideoState('idle');
           } catch (error) {
             console.error('❌ Fallback TTS error:', error);
+            // Double fallback: use calculated duration if even fallback TTS fails
+            const doubleFallbackDuration = calculateTalkingDuration(fallbackMessage.text);
+            console.log('⚠️ Using calculated duration:', doubleFallbackDuration, 'ms');
+            setTimeout(() => {
+              setVideoState('idle');
+            }, doubleFallbackDuration);
           }
+        } else {
+          // No audio playing, use calculated duration for video timing
+          const silentFallbackDuration = calculateTalkingDuration(fallbackMessage.text);
+          console.log('🔇 Silent fallback - Using calculated duration:', silentFallbackDuration, 'ms');
+          setTimeout(() => {
+            setVideoState('idle');
+          }, silentFallbackDuration);
         }
-        
-        // Calculate talking duration for fallback message
-        const fallbackDuration = calculateTalkingDuration(fallbackMessage.text);
-        
-        setTimeout(() => {
-          setVideoState('idle');
-        }, fallbackDuration);
       }, 500);
     }
   }, [messages, isMuted, hasUserInteracted, interactionCount]);
@@ -466,6 +489,8 @@ export default function InteractiveHero() {
           return '/videos/welcome.mp4';
         case 'pointing':
           return '/videos/pointing.mp4';
+        case 'waving2':
+          return '/videos/waving2.mp4';
         case 'idle':
         default:
           return '/videos/idle.mp4';
@@ -541,8 +566,8 @@ export default function InteractiveHero() {
     }
   };
   
-  // Scripted demo flow
-  const startScriptedDemo = () => {
+  // Scripted demo flow - REFACTORED for perfect sync
+  const startScriptedDemo = async () => {
     trackEvent('demo_start' as any);
     setShowDemoButton(false);
     setIsScriptedDemo(true);
@@ -558,138 +583,138 @@ export default function InteractiveHero() {
       console.log('🔊 Demo started - Audio unmuted - Refs updated immediately');
     }
     
-    // Small delay to ensure state updates are processed
-    setTimeout(() => {
-      setVideoState('talking');  // Start with talking after unmute
-    }, 50);
-    
-    // Scripted conversation steps
+    // Scripted conversation steps with natural delays between turns
     const scriptedSteps = [
-      { delay: 100, type: 'ai', text: "Hi! Welcome to Glow Med Spa. I'm Sarah, your virtual receptionist. How can I help you today?" },
-      { delay: 3500, type: 'user', text: "I'd like to book a Botox appointment" },
-      { delay: 3000, type: 'ai', text: "Perfect! I can help you book your Botox appointment. When works best for you?" },
-      { delay: 3500, type: 'user', text: "Do you have anything available this week?" },
-      { delay: 3000, type: 'ai', text: "Let me check our availability... I have Thursday at 2pm or Friday at 10am. Which would you prefer?" },
-      { delay: 3500, type: 'user', text: "Thursday at 2pm works great" },
-      { delay: 3000, type: 'ai', text: "Excellent! You're all set for Thursday at 2pm for your Botox appointment. You'll receive a confirmation text shortly with all the details." },
-      { delay: 2000, type: 'booking', text: "✅ Appointment Confirmed" },
-      { delay: 500, type: 'system', text: "📱 SMS confirmation sent" },
-      { delay: 500, type: 'system', text: "📅 Added to calendar" },
-      { delay: 2000, type: 'ai', text: "All set for Thursday at 2pm! You'll get a confirmation text shortly.\n\nBy the way, I can handle bookings like this for your real clients — 24/7. Most med spas start with my 14-day pilot to try me risk-free." },
-      { delay: 1000, type: 'offer', text: "See How the Pilot Works", subtext: "Full setup in 72h — works with your booking system" }
+      { pauseBefore: 100, type: 'ai', text: "Hi! Welcome to Glow Med Spa. I'm Sarah, your virtual receptionist. How can I help you today?" },
+      { pauseBefore: 1500, type: 'user', text: "I'd like to book a Botox appointment" },
+      { pauseBefore: 800, type: 'ai', text: "Perfect! I can help you book your Botox appointment. When works best for you?" },
+      { pauseBefore: 1500, type: 'user', text: "Do you have anything available this week?" },
+      { pauseBefore: 800, type: 'ai', text: "Let me check our availability... I have Thursday at 2pm or Friday at 10am. Which would you prefer?" },
+      { pauseBefore: 1500, type: 'user', text: "Thursday at 2pm works great" },
+      { pauseBefore: 800, type: 'ai', text: "Excellent! You're all set for Thursday at 2pm for your Botox appointment. You'll receive a confirmation text shortly with all the details." },
+      { pauseBefore: 500, type: 'booking', text: "✅ Appointment Confirmed" },
+      { pauseBefore: 300, type: 'system', text: "📱 SMS confirmation sent" },
+      { pauseBefore: 300, type: 'system', text: "📅 Added to calendar" },
+      { pauseBefore: 1000, type: 'ai', text: "All set for Thursday at 2pm! You'll get a confirmation text shortly.\n\nBy the way, I can handle bookings like this for your real clients — 24/7. Most med spas start with my 14-day pilot to try me risk-free." },
+      { pauseBefore: 500, type: 'offer', text: "See How the Pilot Works", subtext: "Full setup in 72h — works with your booking system" }
     ];
     
-    let currentDelay = 0;
-    scriptedSteps.forEach((step, index) => {
-      currentDelay += step.delay;
+    // Process steps sequentially for perfect synchronization
+    for (let index = 0; index < scriptedSteps.length; index++) {
+      const step = scriptedSteps[index];
       
-      setTimeout(() => {
-        if (step.type === 'ai') {
-          setVideoState('talking');
-          setIsTyping(true);
-          
-          setTimeout(async () => {
-            const aiMessage: ChatMessage = {
-              id: `scripted_${index}`,
-              type: 'ai',
-              text: step.text,
-              timestamp: Date.now()
-            };
-            setMessages(prev => [...prev, aiMessage]);
-            setIsTyping(false);
-            
-            // Speak the message if audio is enabled (demo unmutes automatically)
-            const demoCanSpeak = !isMutedRef.current;
-            console.log('🎭 Demo TTS check:', { 
-              demoCanSpeak,
-              isMuted_state: isMuted,
-              isMuted_ref: isMutedRef.current,
-              stepIndex: index,
-              textLength: step.text.length 
-            });
-            
-            if (demoCanSpeak) {
-              // For scripted demo, create appropriate short versions
-              let textToSpeak = step.text;
-              if (step.text.length > 100) {
-                if (step.text.includes('14-day pilot')) {
-                  textToSpeak = "I can handle bookings like this for your med spa 24/7. Want to try the pilot?";
-                } else if (step.text.includes('Thursday') && step.text.includes('Friday')) {
-                  textToSpeak = "I have Thursday at 2pm or Friday at 10am. Which works better?";
-                } else {
-                  textToSpeak = step.text.substring(0, 80) + "...";
-                }
-              }
-              
-              try {
-                await speak(textToSpeak);
-                console.log('✅ Demo TTS spoken successfully');
-              } catch (error) {
-                console.error('❌ TTS error in demo:', error);
-              }
+      // Wait before each step for natural pacing
+      await new Promise(resolve => setTimeout(resolve, step.pauseBefore));
+      
+      if (step.type === 'ai') {
+        // Show typing indicator
+        // Use waving2 animation for the first AI message in demo
+        const isFirstMessage = index === 0;
+        setVideoState(isFirstMessage ? 'waving2' : 'talking');
+        setIsTyping(true);
+        
+        // Small delay for typing effect
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Add message to chat
+        const aiMessage: ChatMessage = {
+          id: `scripted_${index}`,
+          type: 'ai',
+          text: step.text,
+          timestamp: Date.now()
+        };
+        setMessages(prev => [...prev, aiMessage]);
+        setIsTyping(false);
+        
+        // Speak and wait for audio to finish
+        const demoCanSpeak = !isMutedRef.current;
+        console.log('🎭 Demo step:', index, 'Speaking:', demoCanSpeak);
+        
+        if (demoCanSpeak) {
+          // For scripted demo, create appropriate short versions
+          let textToSpeak = step.text;
+          if (step.text.length > 100) {
+            if (step.text.includes('14-day pilot')) {
+              textToSpeak = "I can handle bookings like this for your med spa 24/7. Want to try the pilot?";
+            } else if (step.text.includes('Thursday') && step.text.includes('Friday')) {
+              textToSpeak = "I have Thursday at 2pm or Friday at 10am. Which works better?";
+            } else if (step.text.includes('Thursday') && step.text.includes('confirmation text')) {
+              textToSpeak = "Excellent! You're all set for Thursday at 2pm. You'll receive a confirmation text with all details.";
             } else {
-              console.log('🔇 Demo TTS skipped - still muted');
+              textToSpeak = step.text.substring(0, 80) + "...";
             }
-            
-            // Calculate talking duration based on text length
-            const talkingDuration = calculateTalkingDuration(step.text);
-            
-            // Return to idle after talking for calculated duration
-            setTimeout(() => {
-              setVideoState('idle');
-            }, talkingDuration);
-          }, 500);
+          }
           
-        } else if (step.type === 'user') {
-          // Simulate user typing
-          setVideoState('listening');
-          const userMessage: ChatMessage = {
-            id: `scripted_${index}`,
-            type: 'user',
-            text: step.text,
-            timestamp: Date.now()
-          };
-          
-          // Type out the message character by character
-          let typedText = '';
-          const chars = step.text.split('');
-          chars.forEach((char, charIndex) => {
-            setTimeout(() => {
-              typedText += char;
-              setTextInput(typedText);
-              
-              if (charIndex === chars.length - 1) {
-                // Message complete, add to chat
-                setTimeout(() => {
-                  setMessages(prev => [...prev, userMessage]);
-                  setTextInput('');
-                }, 200);
-              }
-            }, charIndex * 50);
-          });
-          
-        } else if (step.type === 'booking' || step.type === 'system') {
-          // Show confirmation cards
-          const systemMessage: ChatMessage = {
-            id: `scripted_${index}`,
-            type: step.type as 'booking' | 'system',
-            text: step.text,
-            timestamp: Date.now()
-          };
-          setMessages(prev => [...prev, systemMessage]);
-        } else if (step.type === 'offer') {
-          // Show offer CTA button
-          const offerMessage: ChatMessage = {
-            id: `scripted_${index}`,
-            type: 'offer',
-            text: step.text,
-            subtext: step.subtext,
-            timestamp: Date.now()
-          };
-          setMessages(prev => [...prev, offerMessage]);
+          try {
+            // speak() now resolves only when audio actually ends
+            await speak(textToSpeak);
+            console.log('✅ Demo step', index, 'audio completed');
+            // Return to idle immediately after audio ends
+            setVideoState('idle');
+          } catch (error) {
+            console.error('❌ TTS error in demo step', index, error);
+            // Fallback: use calculated duration if TTS fails
+            const demoDuration = calculateTalkingDuration(step.text);
+            await new Promise(resolve => setTimeout(resolve, demoDuration));
+            setVideoState('idle');
+          }
+        } else {
+          // No audio, use calculated duration
+          const silentDuration = calculateTalkingDuration(step.text);
+          await new Promise(resolve => setTimeout(resolve, silentDuration));
+          setVideoState('idle');
         }
-      }, currentDelay);
-    });
+        
+      } else if (step.type === 'user') {
+        // Simulate user typing
+        setVideoState('listening');
+        const userMessage: ChatMessage = {
+          id: `scripted_${index}`,
+          type: 'user',
+          text: step.text,
+          timestamp: Date.now()
+        };
+        
+        // Type out the message character by character with async/await
+        let typedText = '';
+        const chars = step.text.split('');
+        
+        for (let charIndex = 0; charIndex < chars.length; charIndex++) {
+          typedText += chars[charIndex];
+          setTextInput(typedText);
+          // Wait 50ms between each character for typing effect
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        
+        // Small delay before clearing and adding to messages
+        await new Promise(resolve => setTimeout(resolve, 200));
+        setMessages(prev => [...prev, userMessage]);
+        setTextInput('');
+        
+      } else if (step.type === 'booking' || step.type === 'system') {
+        // Show confirmation cards
+        const systemMessage: ChatMessage = {
+          id: `scripted_${index}`,
+          type: step.type as 'booking' | 'system',
+          text: step.text,
+          timestamp: Date.now()
+        };
+        setMessages(prev => [...prev, systemMessage]);
+        
+      } else if (step.type === 'offer') {
+        // Show offer CTA button
+        const offerMessage: ChatMessage = {
+          id: `scripted_${index}`,
+          type: 'offer',
+          text: step.text,
+          subtext: step.subtext,
+          timestamp: Date.now()
+        };
+        setMessages(prev => [...prev, offerMessage]);
+      }
+    }
+    
+    console.log('🎬 Demo completed - All steps executed in perfect sync');
   };
 
   // Handle modal close with dismissal tracking
@@ -715,6 +740,8 @@ export default function InteractiveHero() {
     };
     setMessages(prev => [...prev, continueMessage]);
     
+    // SYNC FIX: Wait for audio to actually end when continuing chat
+    
     // Speak the continue message if audio is enabled
     const continueCanSpeak = !isMutedRef.current && hasUserInteractedRef.current;
     console.log('💬 Continue chat TTS check:', { 
@@ -726,18 +753,28 @@ export default function InteractiveHero() {
     if (continueCanSpeak) {
       const shortContinue = "Great! I'm here to answer any questions. What would you like to know?";
       try {
+        // speak() now resolves only when audio actually ends
         await speak(shortContinue);
-        console.log('✅ Continue TTS spoken');
+        console.log('✅ Continue TTS completed - Audio has finished');
+        // Return to idle immediately after audio ends
+        setVideoState('idle');
       } catch (error) {
         console.error('❌ Continue TTS error:', error);
+        // Fallback: use calculated duration if TTS fails
+        const continueFallbackDuration = calculateTalkingDuration(continueMessage.text);
+        console.log('⚠️ Continue using fallback duration:', continueFallbackDuration, 'ms');
+        setTimeout(() => {
+          setVideoState('idle');
+        }, continueFallbackDuration);
       }
+    } else {
+      // No audio playing, use calculated duration for video timing
+      const silentContinueDuration = calculateTalkingDuration(continueMessage.text);
+      console.log('🔇 Silent continue - Using calculated duration:', silentContinueDuration, 'ms');
+      setTimeout(() => {
+        setVideoState('idle');
+      }, silentContinueDuration);
     }
-    
-    // Calculate talking duration and return to idle
-    const continueDuration = calculateTalkingDuration(continueMessage.text);
-    setTimeout(() => {
-      setVideoState('idle');
-    }, continueDuration);
     
     // Update chips for AI mode
     setCurrentChips(['How does Sarah work?', 'Pricing details', 'Setup process']);

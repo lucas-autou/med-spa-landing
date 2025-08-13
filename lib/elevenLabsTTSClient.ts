@@ -116,6 +116,8 @@ class ElevenLabsTTSClient {
           console.log('🍵 Audio playback started');
         };
 
+        // IMPORTANT: This promise now resolves ONLY when audio actually ends
+        // This ensures perfect synchronization with video state changes
         audio.onended = () => {
           this.isSpeaking = false;
           
@@ -127,6 +129,9 @@ class ElevenLabsTTSClient {
           
           URL.revokeObjectURL(audioUrl);
           console.log('✅ ElevenLabs TTS completed - Duration:', finalDuration, 'ms');
+          
+          // Resolve with duration, but more importantly, 
+          // this promise resolution signals that audio has truly ended
           resolve(finalDuration);
         };
 

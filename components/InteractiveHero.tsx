@@ -258,6 +258,9 @@ export default function InteractiveHero() {
           timestamp: Date.now()
         });
         
+        // SYNC FIX: Wait for audio to actually end before returning to idle
+        // This ensures perfect synchronization between audio and video
+        
         // Speak the response if audio is enabled and user has interacted
         if (canSpeak) {
           const textToSpeak = aiResult.spokenResponse || aiResult.response;
@@ -266,10 +269,21 @@ export default function InteractiveHero() {
             text: textToSpeak.substring(0, 50) + '...'
           });
           try {
+            // speak() now resolves only when audio actually ends
             await speak(textToSpeak);
-            console.log('✅ TTS successful');
+            console.log('✅ TTS completed - Audio has finished playing');
+            // Return to idle immediately after audio ends
+            setVideoState('idle');
           } catch (error) {
             console.error('❌ TTS error:', error);
+            // Fallback: use calculated duration if TTS fails
+            const fallbackDuration = shouldUsePointing 
+              ? calculateTalkingDuration(aiResult.spokenResponse || aiResult.response) * 1.2
+              : calculateTalkingDuration(aiResult.spokenResponse || aiResult.response);
+            console.log('⚠️ Using fallback duration:', fallbackDuration, 'ms');
+            setTimeout(() => {
+              setVideoState('idle');
+            }, fallbackDuration);
           }
         } else {
           console.log('🔇 TTS skipped - reasons:', { 
@@ -277,12 +291,15 @@ export default function InteractiveHero() {
             hasUserInteracted_ref: hasUserInteractedRef.current,
             reason: isMutedRef.current ? 'audio is muted' : 'no user interaction yet'
           });
+          // No audio playing, use calculated duration for video timing
+          const silentDuration = shouldUsePointing 
+            ? calculateTalkingDuration(aiResult.spokenResponse || aiResult.response) * 1.2
+            : calculateTalkingDuration(aiResult.spokenResponse || aiResult.response);
+          console.log('🔇 Silent mode - Using calculated duration:', silentDuration, 'ms');
+          setTimeout(() => {
+            setVideoState('idle');
+          }, silentDuration);
         }
-        
-        // Calculate talking duration for this response
-        const talkingDuration = shouldUsePointing 
-          ? calculateTalkingDuration(aiResult.spokenResponse || aiResult.response) * 1.2 // Slightly longer for pointing
-          : calculateTalkingDuration(aiResult.spokenResponse || aiResult.response);
         
         // Update chips with AI response
         if (aiResult.chips && aiResult.chips.length > 0) {
@@ -298,11 +315,6 @@ export default function InteractiveHero() {
             // trackEvent('purchase_modal_shown', { trigger: 'ai_detected_intent' });
           }, 3500);
         }
-        
-        // Return to idle state after talking duration
-        setTimeout(() => {
-          setVideoState('idle');
-        }, talkingDuration);
       }, 800);
 
     } catch (error) {
@@ -321,6 +333,8 @@ export default function InteractiveHero() {
         setMessages(prev => [...prev, fallbackMessage]);
         setCurrentChips(['Schedule consult', 'See pricing', 'Try again']);
         
+        // SYNC FIX: Wait for audio to actually end in fallback scenario
+        
         // Speak fallback message if audio is enabled
         const fallbackCanSpeak = !isMutedRef.current && hasUserInteractedRef.current;
         console.log('🚨 Fallback TTS check:', { 
@@ -332,19 +346,28 @@ export default function InteractiveHero() {
         if (fallbackCanSpeak) {
           const shortFallback = "I'm having a connection issue, but I can still help you!";
           try {
+            // speak() now resolves only when audio actually ends
             await speak(shortFallback);
-            console.log('✅ Fallback TTS spoken');
+            console.log('✅ Fallback TTS completed - Audio has finished');
+            // Return to idle immediately after audio ends
+            setVideoState('idle');
           } catch (error) {
             console.error('❌ Fallback TTS error:', error);
+            // Double fallback: use calculated duration if even fallback TTS fails
+            const doubleFallbackDuration = calculateTalkingDuration(fallbackMessage.text);
+            console.log('⚠️ Using calculated duration:', doubleFallbackDuration, 'ms');
+            setTimeout(() => {
+              setVideoState('idle');
+            }, doubleFallbackDuration);
           }
+        } else {
+          // No audio playing, use calculated duration for video timing
+          const silentFallbackDuration = calculateTalkingDuration(fallbackMessage.text);
+          console.log('🔇 Silent fallback - Using calculated duration:', silentFallbackDuration, 'ms');
+          setTimeout(() => {
+            setVideoState('idle');
+          }, silentFallbackDuration);
         }
-        
-        // Calculate talking duration for fallback message
-        const fallbackDuration = calculateTalkingDuration(fallbackMessage.text);
-        
-        setTimeout(() => {
-          setVideoState('idle');
-        }, fallbackDuration);
       }, 500);
     }
   }, [messages, isMuted, hasUserInteracted, interactionCount]);
@@ -598,6 +621,8 @@ export default function InteractiveHero() {
             setMessages(prev => [...prev, aiMessage]);
             setIsTyping(false);
             
+            // SYNC FIX: Wait for audio to actually end in demo mode
+            
             // Speak the message if audio is enabled (demo unmutes automatically)
             const demoCanSpeak = !isMutedRef.current;
             console.log('🎭 Demo TTS check:', { 
@@ -622,22 +647,29 @@ export default function InteractiveHero() {
               }
               
               try {
+                // speak() now resolves only when audio actually ends
                 await speak(textToSpeak);
-                console.log('✅ Demo TTS spoken successfully');
+                console.log('✅ Demo TTS completed - Audio has finished playing');
+                // Return to idle immediately after audio ends
+                setVideoState('idle');
               } catch (error) {
                 console.error('❌ TTS error in demo:', error);
+                // Fallback: use calculated duration if TTS fails
+                const demoDuration = calculateTalkingDuration(step.text);
+                console.log('⚠️ Demo using fallback duration:', demoDuration, 'ms');
+                setTimeout(() => {
+                  setVideoState('idle');
+                }, demoDuration);
               }
             } else {
               console.log('🔇 Demo TTS skipped - still muted');
+              // No audio playing, use calculated duration for video timing
+              const silentDemoDuration = calculateTalkingDuration(step.text);
+              console.log('🔇 Silent demo - Using calculated duration:', silentDemoDuration, 'ms');
+              setTimeout(() => {
+                setVideoState('idle');
+              }, silentDemoDuration);
             }
-            
-            // Calculate talking duration based on text length
-            const talkingDuration = calculateTalkingDuration(step.text);
-            
-            // Return to idle after talking for calculated duration
-            setTimeout(() => {
-              setVideoState('idle');
-            }, talkingDuration);
           }, 500);
           
         } else if (step.type === 'user') {
@@ -715,6 +747,8 @@ export default function InteractiveHero() {
     };
     setMessages(prev => [...prev, continueMessage]);
     
+    // SYNC FIX: Wait for audio to actually end when continuing chat
+    
     // Speak the continue message if audio is enabled
     const continueCanSpeak = !isMutedRef.current && hasUserInteractedRef.current;
     console.log('💬 Continue chat TTS check:', { 
@@ -726,18 +760,28 @@ export default function InteractiveHero() {
     if (continueCanSpeak) {
       const shortContinue = "Great! I'm here to answer any questions. What would you like to know?";
       try {
+        // speak() now resolves only when audio actually ends
         await speak(shortContinue);
-        console.log('✅ Continue TTS spoken');
+        console.log('✅ Continue TTS completed - Audio has finished');
+        // Return to idle immediately after audio ends
+        setVideoState('idle');
       } catch (error) {
         console.error('❌ Continue TTS error:', error);
+        // Fallback: use calculated duration if TTS fails
+        const continueFallbackDuration = calculateTalkingDuration(continueMessage.text);
+        console.log('⚠️ Continue using fallback duration:', continueFallbackDuration, 'ms');
+        setTimeout(() => {
+          setVideoState('idle');
+        }, continueFallbackDuration);
       }
+    } else {
+      // No audio playing, use calculated duration for video timing
+      const silentContinueDuration = calculateTalkingDuration(continueMessage.text);
+      console.log('🔇 Silent continue - Using calculated duration:', silentContinueDuration, 'ms');
+      setTimeout(() => {
+        setVideoState('idle');
+      }, silentContinueDuration);
     }
-    
-    // Calculate talking duration and return to idle
-    const continueDuration = calculateTalkingDuration(continueMessage.text);
-    setTimeout(() => {
-      setVideoState('idle');
-    }, continueDuration);
     
     // Update chips for AI mode
     setCurrentChips(['How does Sarah work?', 'Pricing details', 'Setup process']);

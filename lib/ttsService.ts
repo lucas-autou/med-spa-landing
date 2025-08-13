@@ -173,10 +173,13 @@ class TTSService {
         console.log('🎙️ Browser TTS started');
       };
       
+      // IMPORTANT: This promise resolves when audio actually ends
+      // This ensures synchronization with video state changes
       utterance.onend = () => {
         this.isSpeaking = false;
         const duration = Date.now() - startTime;
         console.log('✅ Browser TTS completed - Duration:', duration, 'ms');
+        // Resolve only when audio has truly ended
         resolve(duration);
       };
       

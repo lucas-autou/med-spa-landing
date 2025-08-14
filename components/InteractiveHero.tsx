@@ -943,8 +943,8 @@ export default function InteractiveHero() {
                     </button>
                   </div>
                   
-                  {/* Status chips with improved readability */}
-                  <div className="absolute bottom-4 left-4 z-20">
+                  {/* Status chips with improved readability - Hidden on mobile */}
+                  <div className="absolute bottom-4 left-4 z-20 hidden sm:block">
                     {/* "I'm here 24/7..." line - smaller and above chips */}
                     <div className="text-sm text-white/90 mb-2" role="status" aria-live="polite">
                       I&apos;m here 24/7 to answer questions and book appointments

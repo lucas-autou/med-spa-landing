@@ -500,6 +500,22 @@ export default function InteractiveHero() {
     return src;
   };
 
+  // Force video play on Safari/iOS when videoState changes
+  useEffect(() => {
+    if (videoRef.current && videoState) {
+      const newSrc = getVideoSrc();
+      // Only update if src actually changed
+      if (videoRef.current.src !== newSrc) {
+        videoRef.current.src = newSrc;
+        videoRef.current.load();
+      }
+      // Always try to play after state change
+      videoRef.current.play().catch(error => {
+        console.log('Video play failed after state change:', error);
+      });
+    }
+  }, [videoState]);
+
   // Handle chip selection
   const handleChipClick = (chipLabel: string) => {
     trackEvent('chip_select', { value: chipLabel });
@@ -888,7 +904,6 @@ export default function InteractiveHero() {
                   <video
                     ref={videoRef}
                     src={getVideoSrc()}
-                    key={videoState}
                     autoPlay
                     loop
                     muted
@@ -901,7 +916,15 @@ export default function InteractiveHero() {
                       console.log('Video loaded:', getVideoSrc());
                       setVideoLoaded(true);
                     }}
-                    onCanPlay={() => setVideoLoaded(true)}
+                    onCanPlay={() => {
+                      setVideoLoaded(true);
+                      // Força play no Safari/iOS quando vídeo estiver pronto
+                      if (videoRef.current) {
+                        videoRef.current.play().catch(e => {
+                          console.log('Autoplay retry failed:', e);
+                        });
+                      }
+                    }}
                     onError={(e) => {
                       console.error('Video error:', e, 'Source:', getVideoSrc());
                     }}

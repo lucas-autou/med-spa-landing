@@ -13,6 +13,7 @@ export interface TTSOptions {
   volume?: number;    // Volume: 0 to 1 (default: 1)
   voice?: string;     // Voice name (default: system default)
   useElevenLabs?: boolean; // Force ElevenLabs or browser TTS
+  onStart?: () => void;    // Callback when speech actually starts
 }
 
 class TTSService {
@@ -171,6 +172,10 @@ class TTSService {
       // Track speech events for accurate timing
       utterance.onstart = () => {
         console.log('🎙️ Browser TTS started');
+        // Call the onStart callback if provided
+        if (options.onStart) {
+          options.onStart();
+        }
       };
       
       // IMPORTANT: This promise resolves when audio actually ends

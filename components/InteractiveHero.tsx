@@ -240,8 +240,7 @@ export default function InteractiveHero() {
           responseText.toLowerCase().includes('let me show') ||
           responseText.toLowerCase().includes('below');
         
-        // Set appropriate video state
-        setVideoState(shouldUsePointing ? 'pointing' : 'talking');
+        // Don't set video state here - wait for audio to start
         setMessages(prev => [...prev, aiMessage]);
         
         // CRITICAL: Use refs for real-time state values (avoid stale closure)
@@ -270,7 +269,13 @@ export default function InteractiveHero() {
           });
           try {
             // speak() now resolves only when audio actually ends
-            await speak(textToSpeak);
+            await speak(textToSpeak, {
+              onStart: () => {
+                // Change video to talking only when audio actually starts
+                setVideoState(shouldUsePointing ? 'pointing' : 'talking');
+                console.log('🎬 Video synchronized with audio start');
+              }
+            });
             console.log('✅ TTS completed - Audio has finished playing');
             // Return to idle immediately after audio ends
             setVideoState('idle');
@@ -291,7 +296,8 @@ export default function InteractiveHero() {
             hasUserInteracted_ref: hasUserInteractedRef.current,
             reason: isMutedRef.current ? 'audio is muted' : 'no user interaction yet'
           });
-          // No audio playing, use calculated duration for video timing
+          // No audio playing, show video animation without sound
+          setVideoState(shouldUsePointing ? 'pointing' : 'talking');
           const silentDuration = shouldUsePointing 
             ? calculateTalkingDuration(aiResult.spokenResponse || aiResult.response) * 1.2
             : calculateTalkingDuration(aiResult.spokenResponse || aiResult.response);
@@ -329,7 +335,7 @@ export default function InteractiveHero() {
         };
 
         setIsTyping(false);
-        setVideoState('talking');
+        // Don't set video state here - wait for audio to start
         setMessages(prev => [...prev, fallbackMessage]);
         setCurrentChips(['Schedule consult', 'See pricing', 'Try again']);
         
@@ -347,7 +353,12 @@ export default function InteractiveHero() {
           const shortFallback = "I'm having a connection issue, but I can still help you!";
           try {
             // speak() now resolves only when audio actually ends
-            await speak(shortFallback);
+            await speak(shortFallback, {
+              onStart: () => {
+                setVideoState('talking');
+                console.log('🎬 Fallback video synchronized with audio start');
+              }
+            });
             console.log('✅ Fallback TTS completed - Audio has finished');
             // Return to idle immediately after audio ends
             setVideoState('idle');
@@ -361,7 +372,8 @@ export default function InteractiveHero() {
             }, doubleFallbackDuration);
           }
         } else {
-          // No audio playing, use calculated duration for video timing
+          // No audio playing, show video animation without sound
+          setVideoState('talking');
           const silentFallbackDuration = calculateTalkingDuration(fallbackMessage.text);
           console.log('🔇 Silent fallback - Using calculated duration:', silentFallbackDuration, 'ms');
           setTimeout(() => {
@@ -382,12 +394,11 @@ export default function InteractiveHero() {
       hasUserInteractedRef.current = true; // Update ref immediately
       console.log('👤 First user interaction detected - ref updated immediately');
       
-      // Auto-unmute audio on first interaction for better UX
-      if (isMuted && videoRef.current) {
-        videoRef.current.muted = false;
+      // Auto-enable TTS on first interaction for better UX (video stays muted)
+      if (isMuted) {
         setIsMuted(false);
         isMutedRef.current = false; // Update ref immediately
-        console.log('🔊 Auto-unmuted audio on first user interaction - ref updated immediately');
+        console.log('🔊 Auto-enabled TTS on first user interaction - video remains muted');
         
         // Show brief notification
         setShowAudioActivated(true);
@@ -570,16 +581,13 @@ export default function InteractiveHero() {
     }
   };
   
-  // Toggle audio mute/unmute
+  // Toggle TTS audio mute/unmute (video always stays muted)
   const toggleAudio = () => {
-    if (videoRef.current) {
-      const newMutedState = !isMuted;
-      videoRef.current.muted = newMutedState;
-      setIsMuted(newMutedState);
-      isMutedRef.current = newMutedState; // Update ref immediately
-      console.log('🔄 Audio toggled:', { newMutedState });
-      trackEvent('audio_toggle', { muted: newMutedState });
-    }
+    const newMutedState = !isMuted;
+    setIsMuted(newMutedState);
+    isMutedRef.current = newMutedState; // Update ref immediately
+    console.log('🔄 TTS audio toggled:', { newMutedState, videoAlwaysMuted: true });
+    trackEvent('audio_toggle', { muted: newMutedState });
   };
   
   // Unlock audio context for Safari/iOS
@@ -637,13 +645,10 @@ export default function InteractiveHero() {
     hasUserInteractedRef.current = true; // Update ref immediately
     setMessages([]);
     
-    // Unmute audio FIRST before any TTS attempts
-    if (videoRef.current) {
-      videoRef.current.muted = false;
-      setIsMuted(false);
-      isMutedRef.current = false; // Update ref immediately
-      console.log('🔊 Demo started - Audio unmuted - Refs updated immediately');
-    }
+    // Enable TTS for demo (video remains muted)
+    setIsMuted(false);
+    isMutedRef.current = false; // Update ref immediately
+    console.log('🔊 Demo started - TTS enabled - Video remains muted');
     
     // Scripted conversation steps with natural delays between turns
     const scriptedSteps = [
@@ -672,7 +677,9 @@ export default function InteractiveHero() {
         // Show typing indicator
         // Use waving2 animation for the first AI message in demo
         const isFirstMessage = index === 0;
-        setVideoState(isFirstMessage ? 'waving2' : 'talking');
+        if (isFirstMessage) {
+          setVideoState('waving2');
+        }
         setIsTyping(true);
         
         // Small delay for typing effect
@@ -709,7 +716,15 @@ export default function InteractiveHero() {
           
           try {
             // speak() now resolves only when audio actually ends
-            await speak(textToSpeak);
+            await speak(textToSpeak, {
+              onStart: () => {
+                // Only change to talking when audio starts (not for first message with wave)
+                if (!isFirstMessage) {
+                  setVideoState('talking');
+                  console.log('🎬 Demo video synchronized with audio start');
+                }
+              }
+            });
             console.log('✅ Demo step', index, 'audio completed');
             // Return to idle immediately after audio ends
             setVideoState('idle');
@@ -721,7 +736,10 @@ export default function InteractiveHero() {
             setVideoState('idle');
           }
         } else {
-          // No audio, use calculated duration
+          // No audio, show video animation without sound
+          if (!isFirstMessage) {
+            setVideoState('talking');
+          }
           const silentDuration = calculateTalkingDuration(step.text);
           await new Promise(resolve => setTimeout(resolve, silentDuration));
           setVideoState('idle');
@@ -790,7 +808,7 @@ export default function InteractiveHero() {
   const handleKeepChatting = async () => {
     setIsAIMode(true);
     setShowFloatingCTA(true);
-    setVideoState('talking');
+    // Don't set video state here - wait for audio to start
     trackEvent('keep_chatting_selected' as any);
     
     // Add a message to continue the conversation
@@ -816,7 +834,12 @@ export default function InteractiveHero() {
       const shortContinue = "Great! I'm here to answer any questions. What would you like to know?";
       try {
         // speak() now resolves only when audio actually ends
-        await speak(shortContinue);
+        await speak(shortContinue, {
+          onStart: () => {
+            setVideoState('talking');
+            console.log('🎬 Continue video synchronized with audio start');
+          }
+        });
         console.log('✅ Continue TTS completed - Audio has finished');
         // Return to idle immediately after audio ends
         setVideoState('idle');
@@ -830,7 +853,8 @@ export default function InteractiveHero() {
         }, continueFallbackDuration);
       }
     } else {
-      // No audio playing, use calculated duration for video timing
+      // No audio playing, show video animation without sound
+      setVideoState('talking');
       const silentContinueDuration = calculateTalkingDuration(continueMessage.text);
       console.log('🔇 Silent continue - Using calculated duration:', silentContinueDuration, 'ms');
       setTimeout(() => {
@@ -944,13 +968,13 @@ export default function InteractiveHero() {
                     </div>
                   </div>
                   
-                  {/* Unmute Button with improved hit area */}
+                  {/* TTS Audio Control Button (video always stays muted) */}
                   <div className="absolute top-3 right-3 z-20">
                     <button 
                       onClick={toggleAudio}
                       className="w-10 h-10 bg-black/60 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/80 transition-colors focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2"
-                      title={isMuted ? "Unmute audio" : "Mute audio"}
-                      aria-label={isMuted ? "Unmute Sarah's voice" : "Mute Sarah's voice"}
+                      title={isMuted ? "Enable Sarah's voice" : "Mute Sarah's voice"}
+                      aria-label={isMuted ? "Enable text-to-speech" : "Mute text-to-speech"}
                       aria-pressed={!isMuted}
                       type="button"
                     >

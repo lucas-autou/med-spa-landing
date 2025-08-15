@@ -60,7 +60,8 @@ interface ChatMessage {
 
 export default function InteractiveHero() {
   const router = useRouter();
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRef1 = useRef<HTMLVideoElement>(null);
+  const videoRef2 = useRef<HTMLVideoElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -80,6 +81,7 @@ export default function InteractiveHero() {
   // Video and UI state
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [videoState, setVideoState] = useState<'idle' | 'listening' | 'talking'>('idle');
+  const [activeVideo, setActiveVideo] = useState<1 | 2>(1); // Control which video is visible
   const [isMuted, setIsMuted] = useState(true); // Start muted by default
   
   // Refs for real-time state access (avoid stale closures)
@@ -161,15 +163,21 @@ export default function InteractiveHero() {
       }
     }, 3000); // Greeting animation duration
     
-    // Debug video element
+    // Debug video elements
     setTimeout(() => {
-      if (videoRef.current) {
-        console.log('Video element found:', {
-          src: videoRef.current.src,
-          readyState: videoRef.current.readyState
+      if (videoRef1.current && videoRef2.current) {
+        console.log('Video elements found:', {
+          video1: {
+            src: videoRef1.current.src,
+            readyState: videoRef1.current.readyState
+          },
+          video2: {
+            src: videoRef2.current.src,
+            readyState: videoRef2.current.readyState
+          }
         });
       } else {
-        console.error('Video element not found!');
+        console.error('Video elements not found!');
       }
     }, 1000);
   }, []);
@@ -502,40 +510,59 @@ export default function InteractiveHero() {
     console.log('Preloaded video:', src);
   }, []);
 
-  // Simplified video transition - single video element
+  // Cross-fade video transition with ping-pong between two videos
   const transitionToVideo = useCallback((newState: 'idle' | 'listening' | 'talking') => {
     // SSR protection
     if (typeof window === 'undefined') return;
     
-    // Check if video ref exists
-    if (!videoRef.current) {
-      console.warn('Video ref not ready');
+    // Determine current and next video refs
+    const currentVideoRef = activeVideo === 1 ? videoRef1 : videoRef2;
+    const nextVideoRef = activeVideo === 1 ? videoRef2 : videoRef1;
+    const nextVideoNum = activeVideo === 1 ? 2 : 1;
+    
+    // Check if refs exist
+    if (!currentVideoRef.current || !nextVideoRef.current) {
+      console.warn('Video refs not ready');
       return;
     }
 
     const newSrc = getVideoSrc(newState);
-    const currentSrc = videoRef.current.src;
     
-    // Set loop based on state
-    videoRef.current.loop = (newState === 'idle' || newState === 'listening');
+    // Prepare next video
+    nextVideoRef.current.loop = (newState === 'idle' || newState === 'listening');
+    nextVideoRef.current.src = newSrc;
+    nextVideoRef.current.load();
     
-    // Only change source if different
-    if (!currentSrc || !currentSrc.includes(newSrc.replace('/videos/', ''))) {
-      videoRef.current.src = newSrc;
-      videoRef.current.load();
+    // Use addEventListener with { once: true } for robustness
+    const handleCanPlay = () => {
+      if (!nextVideoRef.current) return;
+
+      nextVideoRef.current.play()
+        .then(() => {
+          console.log('Next video playing:', newState);
+          // Switch active video to trigger CSS cross-fade
+          setActiveVideo(nextVideoNum as 1 | 2);
+          
+          // Pause the old video after transition completes
+          setTimeout(() => {
+            if (currentVideoRef.current) {
+              currentVideoRef.current.pause();
+              console.log('Previous video paused');
+            }
+          }, 600); // Slightly longer than CSS transition (500ms)
+        })
+        .catch(error => {
+          console.warn('Video play interrupted:', error);
+        });
+    };
+
+    if (nextVideoRef.current) {
+      // Use addEventListener with { once: true } for single execution
+      nextVideoRef.current.addEventListener('canplay', handleCanPlay, { once: true });
     }
-    
-    // Play video and handle errors
-    videoRef.current.play()
-      .then(() => {
-        console.log('Video playing:', newState);
-      })
-      .catch(error => {
-        console.warn('Video play interrupted:', error);
-      });
 
     setVideoState(newState);
-  }, [getVideoSrc]);
+  }, [activeVideo, getVideoSrc]);
   
   // Store transitionToVideo in ref for use in initial effect
   useEffect(() => {
@@ -546,26 +573,31 @@ export default function InteractiveHero() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
-    const handleVideoEnded = () => {
+    const handleVideoEnded = (e: Event) => {
       // Only return to idle if we're in talking state
-      if (videoState === 'talking' && videoRef.current) {
-        console.log('Video ended, returning to idle');
-        transitionToVideo('idle');
+      if (videoState === 'talking') {
+        // Verify it was the active video that ended
+        const activeVideoElement = activeVideo === 1 ? videoRef1.current : videoRef2.current;
+        if (e.target === activeVideoElement) {
+          console.log('Active "talking" video ended, returning to idle');
+          transitionToVideo('idle');
+        }
       }
     };
 
-    const video = videoRef.current;
-    if (video) {
-      video.addEventListener('ended', handleVideoEnded);
-    }
+    // Attach listener to both videos for robustness
+    const v1 = videoRef1.current;
+    const v2 = videoRef2.current;
+    
+    v1?.addEventListener('ended', handleVideoEnded);
+    v2?.addEventListener('ended', handleVideoEnded);
 
     // Cleanup
     return () => {
-      if (video) {
-        video.removeEventListener('ended', handleVideoEnded);
-      }
+      v1?.removeEventListener('ended', handleVideoEnded);
+      v2?.removeEventListener('ended', handleVideoEnded);
     };
-  }, [videoState, transitionToVideo]);
+  }, [videoState, activeVideo, transitionToVideo]);
 
   // Preload videos on mount
   useEffect(() => {
@@ -577,15 +609,15 @@ export default function InteractiveHero() {
     preloadVideo('/videos/talking_neutral.mp4');
   }, [preloadVideo]);
 
-  // Initialize video element
+  // Initialize first video element
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
-    if (videoRef.current) {
-      videoRef.current.src = getVideoSrc('idle');
-      videoRef.current.loop = true;
-      videoRef.current.load();
-      videoRef.current.play().catch(e => {
+    if (videoRef1.current) {
+      videoRef1.current.src = getVideoSrc('idle');
+      videoRef1.current.loop = true;
+      videoRef1.current.load();
+      videoRef1.current.play().catch(e => {
         console.log('Initial video play failed:', e);
       });
     }
@@ -1002,34 +1034,61 @@ export default function InteractiveHero() {
                       loading="eager"
                     />
                   )}
-                  {/* Single Video Element */}
+                  {/* Video 1 - First video element */}
                   <video
-                    ref={videoRef}
+                    ref={videoRef1}
                     autoPlay
                     muted
                     playsInline
                     webkit-playsinline="true"
                     x-webkit-airplay="allow"
                     poster="/videos/poster.jpg"
-                    className="absolute inset-0 w-full h-full object-cover z-10"
+                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ease-in-out ${
+                      activeVideo === 1 ? 'opacity-100 z-10' : 'opacity-0 z-0'
+                    }`}
                     onLoadedData={() => {
-                      console.log('Video loaded');
+                      console.log('Video 1 loaded');
                       setVideoLoaded(true);
                     }}
                     onCanPlay={() => {
                       setVideoLoaded(true);
                       // Força play no Safari/iOS quando vídeo estiver pronto
-                      if (videoRef.current) {
-                        videoRef.current.play().catch(e => {
-                          console.log('Video autoplay retry failed:', e);
+                      if (videoRef1.current && activeVideo === 1) {
+                        videoRef1.current.play().catch(e => {
+                          console.log('Video 1 autoplay retry failed:', e);
                         });
                       }
                     }}
                     onError={(e) => {
-                      console.error('Video error:', e);
+                      console.error('Video 1 error:', e);
                     }}
                     aria-label="Sarah, your virtual assistant - video demonstration"
                     role="img"
+                  />
+                  
+                  {/* Video 2 - Second video element for cross-fade */}
+                  <video
+                    ref={videoRef2}
+                    autoPlay
+                    muted
+                    playsInline
+                    webkit-playsinline="true"
+                    x-webkit-airplay="allow"
+                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ease-in-out ${
+                      activeVideo === 2 ? 'opacity-100 z-10' : 'opacity-0 z-0'
+                    }`}
+                    onCanPlay={() => {
+                      // Força play no Safari/iOS quando vídeo estiver pronto
+                      if (videoRef2.current && activeVideo === 2) {
+                        videoRef2.current.play().catch(e => {
+                          console.log('Video 2 autoplay retry failed:', e);
+                        });
+                      }
+                    }}
+                    onError={(e) => {
+                      console.error('Video 2 error:', e);
+                    }}
+                    aria-hidden={activeVideo !== 2}
                   />
                   {/* Stronger bottom gradient for contrast */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none z-20" />

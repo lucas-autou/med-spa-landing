@@ -82,13 +82,12 @@ export default function InteractiveHero() {
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [videoState, setVideoState] = useState<'idle' | 'listening' | 'talking'>('idle');
   const [activeVideo, setActiveVideo] = useState<1 | 2>(1); // Control which video is visible
-  const [isTransitioning, setIsTransitioning] = useState(false); // Lock to prevent overlapping transitions
+  const [previousVideoPath, setPreviousVideoPath] = useState(''); // Track previous video path
   const [isMuted, setIsMuted] = useState(true); // Start muted by default
   
   // Refs for real-time state access (avoid stale closures)
   const isMutedRef = useRef(true);
   const hasUserInteractedRef = useRef(false);
-  const isTransitioningRef = useRef(false);
   
   // AI Chat state
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -131,13 +130,7 @@ export default function InteractiveHero() {
     hasUserInteractedRef.current = hasUserInteracted;
   }, [hasUserInteracted]);
 
-  // Sync isTransitioning ref with state
-  useEffect(() => {
-    isTransitioningRef.current = isTransitioning;
-  }, [isTransitioning]);
 
-  // Define transitionToVideo ref for early usage
-  const transitionToVideoRef = useRef<(newState: 'idle' | 'listening' | 'talking') => void>();
   
   // Add initial greeting message with auto-start
   useEffect(() => {
@@ -149,11 +142,7 @@ export default function InteractiveHero() {
     };
     setMessages([initialMessage]);
     // Start with talking animation for greeting
-    if (transitionToVideoRef.current) {
-      transitionToVideoRef.current('talking');
-    } else {
-      setVideoState('talking');
-    }
+    setVideoState('talking');
     trackEvent('hero_view');
     
     // Don't speak initial greeting automatically (respect muted state on load)
@@ -161,11 +150,7 @@ export default function InteractiveHero() {
     
     // Return to idle after greeting animation
     setTimeout(() => {
-      if (transitionToVideoRef.current) {
-        transitionToVideoRef.current('idle');
-      } else {
-        setVideoState('idle');
-      }
+      setVideoState('idle');
     }, 3000); // Greeting animation duration
     
     // Debug video elements
@@ -198,7 +183,7 @@ export default function InteractiveHero() {
 
     setMessages(prev => [...prev, userMessage]);
     setIsTyping(true);
-    transitionToVideo('listening');
+    setVideoState('listening');
 
     try {
       // Prepare conversation history for AI
@@ -279,20 +264,20 @@ export default function InteractiveHero() {
             await speak(textToSpeak, {
               onStart: () => {
                 // Change video to talking only when audio actually starts
-                transitionToVideo('talking');
+                setVideoState('talking');
                 console.log('🎬 Video synchronized with audio start');
               }
             });
             console.log('✅ TTS completed - Audio has finished playing');
             // Return to idle immediately after audio ends
-            transitionToVideo('idle');
+            setVideoState('idle');
           } catch (error) {
             console.error('❌ TTS error:', error);
             // Fallback: use calculated duration if TTS fails
             const fallbackDuration = calculateTalkingDuration(aiResult.spokenResponse || aiResult.response);
             console.log('⚠️ Using fallback duration:', fallbackDuration, 'ms');
             setTimeout(() => {
-              transitionToVideo('idle');
+              setVideoState('idle');
             }, fallbackDuration);
           }
         } else {
@@ -302,11 +287,11 @@ export default function InteractiveHero() {
             reason: isMutedRef.current ? 'audio is muted' : 'no user interaction yet'
           });
           // No audio playing, show video animation without sound
-          transitionToVideo('talking');
+          setVideoState('talking');
           const silentDuration = calculateTalkingDuration(aiResult.spokenResponse || aiResult.response);
           console.log('🔇 Silent mode - Using calculated duration:', silentDuration, 'ms');
           setTimeout(() => {
-            transitionToVideo('idle');
+            setVideoState('idle');
           }, silentDuration);
         }
         
@@ -358,29 +343,29 @@ export default function InteractiveHero() {
             // speak() now resolves only when audio actually ends
             await speak(shortFallback, {
               onStart: () => {
-                transitionToVideo('talking');
+                setVideoState('talking');
                 console.log('🎬 Fallback video synchronized with audio start');
               }
             });
             console.log('✅ Fallback TTS completed - Audio has finished');
             // Return to idle immediately after audio ends
-            transitionToVideo('idle');
+            setVideoState('idle');
           } catch (error) {
             console.error('❌ Fallback TTS error:', error);
             // Double fallback: use calculated duration if even fallback TTS fails
             const doubleFallbackDuration = calculateTalkingDuration(fallbackMessage.text);
             console.log('⚠️ Using calculated duration:', doubleFallbackDuration, 'ms');
             setTimeout(() => {
-              transitionToVideo('idle');
+              setVideoState('idle');
             }, doubleFallbackDuration);
           }
         } else {
           // No audio playing, show video animation without sound
-          transitionToVideo('talking');
+          setVideoState('talking');
           const silentFallbackDuration = calculateTalkingDuration(fallbackMessage.text);
           console.log('🔇 Silent fallback - Using calculated duration:', silentFallbackDuration, 'ms');
           setTimeout(() => {
-            transitionToVideo('idle');
+            setVideoState('idle');
           }, silentFallbackDuration);
         }
       }, 500);
@@ -515,66 +500,60 @@ export default function InteractiveHero() {
     console.log('Preloaded video:', src);
   }, []);
 
-  // Imperative video transition with precise logging
-  const transitionToVideo = useCallback((newState: 'idle' | 'listening' | 'talking') => {
-    // LOG 1: TRANSITION ATTEMPT
-    console.log(`[1] Transition Attempt to -> ${newState}`, { transitioning: isTransitioningRef.current });
-    
-    if (isTransitioningRef.current) return;
-    if (typeof window === 'undefined') return;
+  // New reactive useEffect for video transitions
+  useEffect(() => {
+    // 1. Determine which video should play based on current state
+    const currentVideoPath = getVideoSrc(videoState);
 
+    // 2. If the path hasn't changed, don't do anything to avoid loops
+    if (currentVideoPath === previousVideoPath) {
+      return;
+    }
+
+    // Identify the video elements
     const currentVideoRef = activeVideo === 1 ? videoRef1 : videoRef2;
     const nextVideoRef = activeVideo === 1 ? videoRef2 : videoRef1;
     const nextVideoNum = activeVideo === 1 ? 2 : 1;
 
-    if (!nextVideoRef.current || !currentVideoRef.current) return;
-
-    setIsTransitioning(true);
-    setVideoState(newState);
-    
-    const newSrc = getVideoSrc(newState);
-    
-    // Internal function to handle playback
-    function handleCanPlay() {
-      if (!nextVideoRef.current || !currentVideoRef.current) {
-        setIsTransitioning(false);
-        return;
-      }
-      
-      // LOG 3: VIDEO READY TO PLAY
-      console.log(`[3] Video ${nextVideoNum} is ready. Playing...`);
-
-      nextVideoRef.current.loop = (newState === 'idle' || newState === 'listening');
-      nextVideoRef.current.play().catch(e => console.error("Play failed", e));
-      
-      setActiveVideo(nextVideoNum as 1 | 2);
-
-      setTimeout(() => {
-        currentVideoRef.current?.pause();
-        // LOG 4: TRANSITION COMPLETE
-        console.log(`[4] Transition to ${newState} complete. Unlocking.`);
-        setIsTransitioning(false);
-      }, 600);
+    if (!nextVideoRef.current || !currentVideoRef.current) {
+      return; // Exit if refs aren't ready
     }
     
-    // Check if we can reuse existing video
-    if (nextVideoRef.current.src.includes(newSrc)) {
-      // LOG 2A: REUSING EXISTING VIDEO
-      console.log(`[2a] Video ${nextVideoNum} already has src for '${newState}'. Reusing.`);
-      handleCanPlay();
-    } else {
-      // LOG 2B: PREPARING NEW VIDEO
-      console.log(`[2b] Preparing Video ${nextVideoNum} with new src for '${newState}'`);
-      nextVideoRef.current.src = newSrc;
-      nextVideoRef.current.load();
-      nextVideoRef.current.addEventListener('canplay', handleCanPlay, { once: true });
-    }
-  }, [activeVideo, getVideoSrc]);
-  
-  // Store transitionToVideo in ref for use in initial effect
-  useEffect(() => {
-    transitionToVideoRef.current = transitionToVideo;
-  }, [transitionToVideo]);
+    // 3. Prepare the next video (the one that's hidden)
+    nextVideoRef.current.src = currentVideoPath;
+    nextVideoRef.current.loop = (videoState === 'idle' || videoState === 'listening');
+    nextVideoRef.current.currentTime = 0;
+    nextVideoRef.current.load();
+
+    const handleLoadedData = () => {
+      if (!nextVideoRef.current || !currentVideoRef.current) return;
+      
+      // 4. Play the hidden video
+      nextVideoRef.current.play().then(() => {
+        // 5. Safety delay to ensure first frame rendering occurs
+        setTimeout(() => {
+          if (!nextVideoRef.current || !currentVideoRef.current) return;
+          
+          // 6. Activate fade by swapping active video
+          setActiveVideo(nextVideoNum as 1 | 2);
+
+          // 7. Pause the old video after visual transition completes
+          setTimeout(() => {
+            currentVideoRef.current?.pause();
+          }, 600);
+        }, 50);
+      }).catch(e => {
+        console.error(`Failed to play video ${currentVideoPath}`, e);
+      });
+    };
+
+    // 8. Add 'loadeddata' listener safely
+    nextVideoRef.current.addEventListener('loadeddata', handleLoadedData, { once: true });
+
+    // 9. Update previous path for next render
+    setPreviousVideoPath(currentVideoPath);
+
+  }, [videoState, activeVideo, getVideoSrc, previousVideoPath]); // Complete dependencies for correct reactivity
 
   // Note: Video playback is now handled imperatively in transitionToVideo
 
@@ -588,10 +567,7 @@ export default function InteractiveHero() {
         // Verify it was the active video that ended
         const activeVideoElement = activeVideo === 1 ? videoRef1.current : videoRef2.current;
         if (e.target === activeVideoElement) {
-          // Use ref to avoid dependency issues
-          if (transitionToVideoRef.current) {
-            transitionToVideoRef.current('idle');
-          }
+          setVideoState('idle');
         }
       }
     };
@@ -608,7 +584,7 @@ export default function InteractiveHero() {
       v1?.removeEventListener('ended', handleVideoEnded);
       v2?.removeEventListener('ended', handleVideoEnded);
     };
-  }, [videoState, activeVideo]); // Dependencies without transitionToVideo to avoid loops
+  }, [videoState, activeVideo]); // Correct dependencies
 
   // Preload videos on mount
   useEffect(() => {
@@ -786,7 +762,7 @@ export default function InteractiveHero() {
         // Use talking animation for all AI messages
         const isFirstMessage = index === 0;
         if (isFirstMessage) {
-          transitionToVideo('talking');
+          setVideoState('talking');
         }
         setIsTyping(true);
         
@@ -827,41 +803,41 @@ export default function InteractiveHero() {
           console.log('🎯 Demo AI message:', { index, isFirstMessage, isLastAIMessage, textLength: textToSpeak.length });
           
           // Fallback: transition to talking immediately for demo
-          transitionToVideo('talking');
+          setVideoState('talking');
           
           try {
             // speak() now resolves only when audio actually ends
             await speak(textToSpeak, {
               onStart: () => {
                 // Always use talking animation when audio starts
-                transitionToVideo('talking');
+                setVideoState('talking');
                 console.log('🎬 Demo video synchronized with audio start');
               }
             });
             console.log('✅ Demo step', index, 'audio completed - returning to idle');
             // Return to idle immediately after audio ends
-            transitionToVideo('idle');
+            setVideoState('idle');
           } catch (error) {
             console.error('❌ TTS error in demo step', index, error);
             // Fallback: use calculated duration if TTS fails
-            transitionToVideo('talking');
+            setVideoState('talking');
             const demoDuration = calculateTalkingDuration(step.text);
             await new Promise(resolve => setTimeout(resolve, demoDuration));
-            transitionToVideo('idle');
+            setVideoState('idle');
           }
         } else {
           // No audio, show video animation without sound
           if (!isFirstMessage) {
-            transitionToVideo('talking');
+            setVideoState('talking');
           }
           const silentDuration = calculateTalkingDuration(step.text);
           await new Promise(resolve => setTimeout(resolve, silentDuration));
-          transitionToVideo('idle');
+          setVideoState('idle');
         }
         
       } else if (step.type === 'user') {
         // Simulate user typing
-        transitionToVideo('listening');
+        setVideoState('listening');
         const userMessage: ChatMessage = {
           id: `scripted_${index}`,
           type: 'user',
@@ -913,7 +889,7 @@ export default function InteractiveHero() {
     // Force transition to idle after demo completes
     setTimeout(() => {
       console.log('🔄 Final transition to idle after demo completion');
-      transitionToVideo('idle');
+      setVideoState('idle');
     }, 1000);
   };
 
@@ -956,29 +932,29 @@ export default function InteractiveHero() {
         // speak() now resolves only when audio actually ends
         await speak(shortContinue, {
           onStart: () => {
-            transitionToVideo('talking');
+            setVideoState('talking');
             console.log('🎬 Continue video synchronized with audio start');
           }
         });
         console.log('✅ Continue TTS completed - Audio has finished');
         // Return to idle immediately after audio ends
-        transitionToVideo('idle');
+        setVideoState('idle');
       } catch (error) {
         console.error('❌ Continue TTS error:', error);
         // Fallback: use calculated duration if TTS fails
         const continueFallbackDuration = calculateTalkingDuration(continueMessage.text);
         console.log('⚠️ Continue using fallback duration:', continueFallbackDuration, 'ms');
         setTimeout(() => {
-          transitionToVideo('idle');
+          setVideoState('idle');
         }, continueFallbackDuration);
       }
     } else {
       // No audio playing, show video animation without sound
-      transitionToVideo('talking');
+      setVideoState('talking');
       const silentContinueDuration = calculateTalkingDuration(continueMessage.text);
       console.log('🔇 Silent continue - Using calculated duration:', silentContinueDuration, 'ms');
       setTimeout(() => {
-        transitionToVideo('idle');
+        setVideoState('idle');
       }, silentContinueDuration);
     }
     

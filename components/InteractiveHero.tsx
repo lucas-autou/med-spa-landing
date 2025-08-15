@@ -82,11 +82,13 @@ export default function InteractiveHero() {
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [videoState, setVideoState] = useState<'idle' | 'listening' | 'talking'>('idle');
   const [activeVideo, setActiveVideo] = useState<1 | 2>(1); // Control which video is visible
+  const [isTransitioning, setIsTransitioning] = useState(false); // Lock to prevent overlapping transitions
   const [isMuted, setIsMuted] = useState(true); // Start muted by default
   
   // Refs for real-time state access (avoid stale closures)
   const isMutedRef = useRef(true);
   const hasUserInteractedRef = useRef(false);
+  const isTransitioningRef = useRef(false);
   
   // AI Chat state
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -123,13 +125,16 @@ export default function InteractiveHero() {
   // Sync refs with state to avoid stale closures
   useEffect(() => {
     isMutedRef.current = isMuted;
-    console.log('📌 isMuted ref updated:', isMuted);
   }, [isMuted]);
 
   useEffect(() => {
     hasUserInteractedRef.current = hasUserInteracted;
-    console.log('📌 hasUserInteracted ref updated:', hasUserInteracted);
   }, [hasUserInteracted]);
+
+  // Sync isTransitioning ref with state
+  useEffect(() => {
+    isTransitioningRef.current = isTransitioning;
+  }, [isTransitioning]);
 
   // Define transitionToVideo ref for early usage
   const transitionToVideoRef = useRef<(newState: 'idle' | 'listening' | 'talking') => void>();
@@ -510,64 +515,68 @@ export default function InteractiveHero() {
     console.log('Preloaded video:', src);
   }, []);
 
-  // Cross-fade video transition with ping-pong between two videos
+  // Imperative video transition with precise logging
   const transitionToVideo = useCallback((newState: 'idle' | 'listening' | 'talking') => {
-    // SSR protection
-    if (typeof window === 'undefined') return;
+    // LOG 1: TRANSITION ATTEMPT
+    console.log(`[1] Transition Attempt to -> ${newState}`, { transitioning: isTransitioningRef.current });
     
-    // Determine current and next video refs
+    if (isTransitioningRef.current) return;
+    if (typeof window === 'undefined') return;
+
     const currentVideoRef = activeVideo === 1 ? videoRef1 : videoRef2;
     const nextVideoRef = activeVideo === 1 ? videoRef2 : videoRef1;
     const nextVideoNum = activeVideo === 1 ? 2 : 1;
-    
-    // Check if refs exist
-    if (!currentVideoRef.current || !nextVideoRef.current) {
-      console.warn('Video refs not ready');
-      return;
-    }
 
+    if (!nextVideoRef.current || !currentVideoRef.current) return;
+
+    setIsTransitioning(true);
+    setVideoState(newState);
+    
     const newSrc = getVideoSrc(newState);
     
-    // Prepare next video
-    nextVideoRef.current.loop = (newState === 'idle' || newState === 'listening');
-    nextVideoRef.current.src = newSrc;
-    nextVideoRef.current.load();
+    // Internal function to handle playback
+    function handleCanPlay() {
+      if (!nextVideoRef.current || !currentVideoRef.current) {
+        setIsTransitioning(false);
+        return;
+      }
+      
+      // LOG 3: VIDEO READY TO PLAY
+      console.log(`[3] Video ${nextVideoNum} is ready. Playing...`);
+
+      nextVideoRef.current.loop = (newState === 'idle' || newState === 'listening');
+      nextVideoRef.current.play().catch(e => console.error("Play failed", e));
+      
+      setActiveVideo(nextVideoNum as 1 | 2);
+
+      setTimeout(() => {
+        currentVideoRef.current?.pause();
+        // LOG 4: TRANSITION COMPLETE
+        console.log(`[4] Transition to ${newState} complete. Unlocking.`);
+        setIsTransitioning(false);
+      }, 600);
+    }
     
-    // Use addEventListener with { once: true } for robustness
-    const handleCanPlay = () => {
-      if (!nextVideoRef.current) return;
-
-      nextVideoRef.current.play()
-        .then(() => {
-          console.log('Next video playing:', newState);
-          // Switch active video to trigger CSS cross-fade
-          setActiveVideo(nextVideoNum as 1 | 2);
-          
-          // Pause the old video after transition completes
-          setTimeout(() => {
-            if (currentVideoRef.current) {
-              currentVideoRef.current.pause();
-              console.log('Previous video paused');
-            }
-          }, 600); // Slightly longer than CSS transition (500ms)
-        })
-        .catch(error => {
-          console.warn('Video play interrupted:', error);
-        });
-    };
-
-    if (nextVideoRef.current) {
-      // Use addEventListener with { once: true } for single execution
+    // Check if we can reuse existing video
+    if (nextVideoRef.current.src.includes(newSrc)) {
+      // LOG 2A: REUSING EXISTING VIDEO
+      console.log(`[2a] Video ${nextVideoNum} already has src for '${newState}'. Reusing.`);
+      handleCanPlay();
+    } else {
+      // LOG 2B: PREPARING NEW VIDEO
+      console.log(`[2b] Preparing Video ${nextVideoNum} with new src for '${newState}'`);
+      nextVideoRef.current.src = newSrc;
+      nextVideoRef.current.load();
       nextVideoRef.current.addEventListener('canplay', handleCanPlay, { once: true });
     }
-
-    setVideoState(newState);
   }, [activeVideo, getVideoSrc]);
   
   // Store transitionToVideo in ref for use in initial effect
   useEffect(() => {
     transitionToVideoRef.current = transitionToVideo;
   }, [transitionToVideo]);
+
+  // Note: Video playback is now handled imperatively in transitionToVideo
 
   // Handle video 'ended' event to return to idle after talking
   useEffect(() => {
@@ -579,8 +588,10 @@ export default function InteractiveHero() {
         // Verify it was the active video that ended
         const activeVideoElement = activeVideo === 1 ? videoRef1.current : videoRef2.current;
         if (e.target === activeVideoElement) {
-          console.log('Active "talking" video ended, returning to idle');
-          transitionToVideo('idle');
+          // Use ref to avoid dependency issues
+          if (transitionToVideoRef.current) {
+            transitionToVideoRef.current('idle');
+          }
         }
       }
     };
@@ -597,7 +608,7 @@ export default function InteractiveHero() {
       v1?.removeEventListener('ended', handleVideoEnded);
       v2?.removeEventListener('ended', handleVideoEnded);
     };
-  }, [videoState, activeVideo, transitionToVideo]);
+  }, [videoState, activeVideo]); // Dependencies without transitionToVideo to avoid loops
 
   // Preload videos on mount
   useEffect(() => {

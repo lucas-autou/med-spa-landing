@@ -95,6 +95,11 @@ class TTSService {
     if (this.useElevenLabs && options.useElevenLabs !== false) {
       try {
         this.isSpeaking = true;
+        // Call onStart callback if provided (for video sync)
+        if (options.onStart) {
+          console.log('🎙️ ElevenLabs TTS starting - calling onStart callback');
+          options.onStart();
+        }
         const duration = await elevenLabsTTSClient.speak(text, {
           // Map browser TTS options to ElevenLabs options
           stability: 0.5,

@@ -60,13 +60,10 @@ interface ChatMessage {
 
 export default function InteractiveHero() {
   const router = useRouter();
-  const videoRef1 = useRef<HTMLVideoElement>(null);
-  const videoRef2 = useRef<HTMLVideoElement>(null);
-  const activeVideoRef = useRef<1 | 2>(1);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const preloadedVideosRef = useRef<Set<string>>(new Set());
   
   // Calculate talking duration based on text length
@@ -82,9 +79,8 @@ export default function InteractiveHero() {
   
   // Video and UI state
   const [videoLoaded, setVideoLoaded] = useState(false);
-  const [videoState, setVideoState] = useState<'idle' | 'listening' | 'talking' | 'wave' | 'welcome' | 'pointing' | 'waving2'>('idle');
+  const [videoState, setVideoState] = useState<'idle' | 'listening' | 'talking'>('idle');
   const [isMuted, setIsMuted] = useState(true); // Start muted by default
-  const [activeVideo, setActiveVideo] = useState<1 | 2>(1);
   
   // Refs for real-time state access (avoid stale closures)
   const isMutedRef = useRef(true);
@@ -133,8 +129,8 @@ export default function InteractiveHero() {
     console.log('📌 hasUserInteracted ref updated:', hasUserInteracted);
   }, [hasUserInteracted]);
 
-  // Define transitionToVideo before using it in other hooks
-  const transitionToVideoRef = useRef<(newState: typeof videoState) => void>();
+  // Define transitionToVideo ref for early usage
+  const transitionToVideoRef = useRef<(newState: 'idle' | 'listening' | 'talking') => void>();
   
   // Add initial greeting message with auto-start
   useEffect(() => {
@@ -145,41 +141,35 @@ export default function InteractiveHero() {
       timestamp: Date.now()
     };
     setMessages([initialMessage]);
-    // Start with welcome animation instead of wave
+    // Start with talking animation for greeting
     if (transitionToVideoRef.current) {
-      transitionToVideoRef.current('welcome');
+      transitionToVideoRef.current('talking');
     } else {
-      setVideoState('welcome');
+      setVideoState('talking');
     }
     trackEvent('hero_view');
     
     // Don't speak initial greeting automatically (respect muted state on load)
     // TTS will only start after user interaction
     
-    // Return to idle after welcome animation
+    // Return to idle after greeting animation
     setTimeout(() => {
       if (transitionToVideoRef.current) {
         transitionToVideoRef.current('idle');
       } else {
         setVideoState('idle');
       }
-    }, 3000); // Welcome animation is typically longer
+    }, 3000); // Greeting animation duration
     
-    // Debug video elements
+    // Debug video element
     setTimeout(() => {
-      if (videoRef1.current && videoRef2.current) {
-        console.log('Video elements found:', {
-          video1: {
-            src: videoRef1.current.src,
-            readyState: videoRef1.current.readyState
-          },
-          video2: {
-            src: videoRef2.current.src,
-            readyState: videoRef2.current.readyState
-          }
+      if (videoRef.current) {
+        console.log('Video element found:', {
+          src: videoRef.current.src,
+          readyState: videoRef.current.readyState
         });
       } else {
-        console.error('Video elements not found!');
+        console.error('Video element not found!');
       }
     }, 1000);
   }, []);
@@ -244,20 +234,7 @@ export default function InteractiveHero() {
 
         setIsTyping(false);
         
-        // Determine if we should use pointing animation
-        const responseText = aiResult.response;
-        const shouldUsePointing = 
-          responseText.length > 200 || // Long responses
-          responseText.toLowerCase().includes('vou colocar') || 
-          responseText.toLowerCase().includes('no chat') ||
-          responseText.toLowerCase().includes('abaixo') ||
-          responseText.toLowerCase().includes('lista') ||
-          responseText.toLowerCase().includes('opções') ||
-          responseText.toLowerCase().includes('informações') ||
-          responseText.toLowerCase().includes('here are') ||
-          responseText.toLowerCase().includes('let me show') ||
-          responseText.toLowerCase().includes('below');
-        
+        // All AI responses now use 'talking' state
         // Don't set video state here - wait for audio to start
         setMessages(prev => [...prev, aiMessage]);
         
@@ -271,7 +248,6 @@ export default function InteractiveHero() {
           hasUserInteracted_state: hasUserInteracted,
           hasUserInteracted_ref: hasUserInteractedRef.current,
           hasSpokenResponse: !!aiResult.spokenResponse,
-          usingPointingAnimation: shouldUsePointing,
           timestamp: Date.now()
         });
         
@@ -290,7 +266,7 @@ export default function InteractiveHero() {
             await speak(textToSpeak, {
               onStart: () => {
                 // Change video to talking only when audio actually starts
-                transitionToVideo(shouldUsePointing ? 'pointing' : 'talking');
+                transitionToVideo('talking');
                 console.log('🎬 Video synchronized with audio start');
               }
             });
@@ -300,9 +276,7 @@ export default function InteractiveHero() {
           } catch (error) {
             console.error('❌ TTS error:', error);
             // Fallback: use calculated duration if TTS fails
-            const fallbackDuration = shouldUsePointing 
-              ? calculateTalkingDuration(aiResult.spokenResponse || aiResult.response) * 1.2
-              : calculateTalkingDuration(aiResult.spokenResponse || aiResult.response);
+            const fallbackDuration = calculateTalkingDuration(aiResult.spokenResponse || aiResult.response);
             console.log('⚠️ Using fallback duration:', fallbackDuration, 'ms');
             setTimeout(() => {
               transitionToVideo('idle');
@@ -315,10 +289,8 @@ export default function InteractiveHero() {
             reason: isMutedRef.current ? 'audio is muted' : 'no user interaction yet'
           });
           // No audio playing, show video animation without sound
-          transitionToVideo(shouldUsePointing ? 'pointing' : 'talking');
-          const silentDuration = shouldUsePointing 
-            ? calculateTalkingDuration(aiResult.spokenResponse || aiResult.response) * 1.2
-            : calculateTalkingDuration(aiResult.spokenResponse || aiResult.response);
+          transitionToVideo('talking');
+          const silentDuration = calculateTalkingDuration(aiResult.spokenResponse || aiResult.response);
           console.log('🔇 Silent mode - Using calculated duration:', silentDuration, 'ms');
           setTimeout(() => {
             transitionToVideo('idle');
@@ -452,8 +424,10 @@ export default function InteractiveHero() {
     }
   }, [processUserInput]);
 
-  // Check for voice support
+  // Check for voice support with SSR protection
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     setVoiceSupported(!!SpeechRecognition);
     
@@ -504,34 +478,21 @@ export default function InteractiveHero() {
     }
   }, [messages]);
 
-  // Video state mapping
-  const getVideoSrc = (state?: typeof videoState) => {
-    const currentState = state || videoState;
-    const src = (() => {
-      switch (currentState) {
-        case 'listening':
-          return '/videos/listening.mp4';
-        case 'talking':
-          return '/videos/talking_neutral.mp4';
-        case 'wave':
-          return '/videos/wave.mp4';
-        case 'welcome':
-          return '/videos/welcome.mp4';
-        case 'pointing':
-          return '/videos/pointing.mp4';
-        case 'waving2':
-          return '/videos/waving2.mp4';
-        case 'idle':
-        default:
-          return '/videos/idle.mp4';
-      }
-    })();
-    console.log('Current video state:', currentState, 'Source:', src);
+  // Simplified video state mapping - only 3 states
+  const getVideoSrc = useCallback((state: 'idle' | 'listening' | 'talking' = 'idle') => {
+    const videoMap = {
+      'idle': '/videos/idle.mp4',
+      'listening': '/videos/listening.mp4',
+      'talking': '/videos/talking_neutral.mp4'
+    };
+    const src = videoMap[state];
+    console.log('Video state:', state, 'Source:', src);
     return src;
-  };
+  }, []);
 
-  // Preload video function
-  const preloadVideo = (src: string) => {
+  // Preload video function with SSR protection
+  const preloadVideo = useCallback((src: string) => {
+    if (typeof window === 'undefined') return;
     if (preloadedVideosRef.current.has(src)) return;
     
     const video = document.createElement('video');
@@ -539,85 +500,96 @@ export default function InteractiveHero() {
     video.load();
     preloadedVideosRef.current.add(src);
     console.log('Preloaded video:', src);
-  };
+  }, []);
 
-  // Smooth video transition with crossfade
-  const transitionToVideo = useCallback((newState: typeof videoState) => {
-    // Clear any pending transition
-    if (transitionTimeoutRef.current) {
-      clearTimeout(transitionTimeoutRef.current);
-    }
-
-    const newSrc = getVideoSrc(newState);
-    const currentVideoRef = activeVideo === 1 ? videoRef1 : videoRef2;
-    const nextVideoRef = activeVideo === 1 ? videoRef2 : videoRef1;
-    const nextVideoNum = activeVideo === 1 ? 2 : 1;
+  // Simplified video transition - single video element
+  const transitionToVideo = useCallback((newState: 'idle' | 'listening' | 'talking') => {
+    // SSR protection
+    if (typeof window === 'undefined') return;
     
-    // If we're already in the target state and the correct video is playing, just ensure it's looping
-    if (newState === videoState && currentVideoRef.current?.src.includes(newSrc)) {
-      console.log('Already in state:', newState);
-      // Ensure idle video loops properly
-      if (newState === 'idle' && currentVideoRef.current) {
-        currentVideoRef.current.loop = true;
-        currentVideoRef.current.play().catch(e => console.log('Loop play failed:', e));
-      }
+    // Check if video ref exists
+    if (!videoRef.current) {
+      console.warn('Video ref not ready');
       return;
     }
 
-    // Prepare next video
-    if (nextVideoRef.current) {
-      // Set loop attribute based on video type
-      nextVideoRef.current.loop = (newState === 'idle' || newState === 'listening');
-      nextVideoRef.current.src = newSrc;
-      nextVideoRef.current.load();
-      
-      // When next video is ready, perform crossfade
-      nextVideoRef.current.oncanplay = () => {
-        // Start playing next video (still hidden)
-        nextVideoRef.current?.play().catch(e => {
-          console.log('Video play failed:', e);
-        });
-        
-        // Trigger crossfade by switching active video
-        setActiveVideo(nextVideoNum as 1 | 2);
-        activeVideoRef.current = nextVideoNum as 1 | 2;
-        
-        // After fade completes, clean up previous video
-        transitionTimeoutRef.current = setTimeout(() => {
-          if (currentVideoRef.current) {
-            currentVideoRef.current.pause();
-          }
-        }, 600); // Match CSS transition duration
-      };
+    const newSrc = getVideoSrc(newState);
+    const currentSrc = videoRef.current.src;
+    
+    // Set loop based on state
+    videoRef.current.loop = (newState === 'idle' || newState === 'listening');
+    
+    // Only change source if different
+    if (!currentSrc || !currentSrc.includes(newSrc.replace('/videos/', ''))) {
+      videoRef.current.src = newSrc;
+      videoRef.current.load();
     }
+    
+    // Play video and handle errors
+    videoRef.current.play()
+      .then(() => {
+        console.log('Video playing:', newState);
+      })
+      .catch(error => {
+        console.warn('Video play interrupted:', error);
+      });
 
     setVideoState(newState);
-  }, [videoState, activeVideo]);
+  }, [getVideoSrc]);
   
   // Store transitionToVideo in ref for use in initial effect
   useEffect(() => {
     transitionToVideoRef.current = transitionToVideo;
   }, [transitionToVideo]);
 
-  // Preload common videos on mount
+  // Handle video 'ended' event to return to idle after talking
   useEffect(() => {
-    // Preload the most common video states
+    if (typeof window === 'undefined') return;
+    
+    const handleVideoEnded = () => {
+      // Only return to idle if we're in talking state
+      if (videoState === 'talking' && videoRef.current) {
+        console.log('Video ended, returning to idle');
+        transitionToVideo('idle');
+      }
+    };
+
+    const video = videoRef.current;
+    if (video) {
+      video.addEventListener('ended', handleVideoEnded);
+    }
+
+    // Cleanup
+    return () => {
+      if (video) {
+        video.removeEventListener('ended', handleVideoEnded);
+      }
+    };
+  }, [videoState, transitionToVideo]);
+
+  // Preload videos on mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    // Preload only the 3 video states we use
     preloadVideo('/videos/idle.mp4');
     preloadVideo('/videos/listening.mp4');
     preloadVideo('/videos/talking_neutral.mp4');
-    preloadVideo('/videos/welcome.mp4');
-  }, []);
+  }, [preloadVideo]);
 
-  // Initialize first video
+  // Initialize video element
   useEffect(() => {
-    if (videoRef1.current) {
-      videoRef1.current.src = getVideoSrc('idle');
-      videoRef1.current.load();
-      videoRef1.current.play().catch(e => {
+    if (typeof window === 'undefined') return;
+    
+    if (videoRef.current) {
+      videoRef.current.src = getVideoSrc('idle');
+      videoRef.current.loop = true;
+      videoRef.current.load();
+      videoRef.current.play().catch(e => {
         console.log('Initial video play failed:', e);
       });
     }
-  }, []);
+  }, [getVideoSrc]);
 
   // Handle chip selection
   const handleChipClick = (chipLabel: string) => {
@@ -645,8 +617,9 @@ export default function InteractiveHero() {
   };
   
   
-  // Start/stop listening
-  const toggleListening = () => {
+  // Start/stop listening with SSR protection
+  const toggleListening = useCallback(() => {
+    if (typeof window === 'undefined') return;
     if (!recognitionRef.current) return;
     
     if (isListening) {
@@ -660,10 +633,10 @@ export default function InteractiveHero() {
         console.error('Failed to start speech recognition:', error);
       }
     }
-  };
+  }, [isListening]);
 
   // Handle CTA clicks
-  const handleCTAClick = (type: 'pilot' | 'full') => {
+  const handleCTAClick = useCallback((type: 'pilot' | 'full') => {
     if (type === 'pilot') {
       trackEvent('cta_click_pilot', { location: 'hero' });
       router.push('/checkout-pilot');
@@ -671,16 +644,16 @@ export default function InteractiveHero() {
       trackEvent('cta_click_full', { location: 'hero' });
       router.push('/checkout-full');
     }
-  };
+  }, [router]);
   
   // Toggle TTS audio mute/unmute (video always stays muted)
-  const toggleAudio = () => {
+  const toggleAudio = useCallback(() => {
     const newMutedState = !isMuted;
     setIsMuted(newMutedState);
     isMutedRef.current = newMutedState; // Update ref immediately
     console.log('🔄 TTS audio toggled:', { newMutedState, videoAlwaysMuted: true });
     trackEvent('audio_toggle', { muted: newMutedState });
-  };
+  }, [isMuted]);
   
   // Unlock audio context for Safari/iOS
   const unlockAudioContext = async () => {
@@ -767,10 +740,10 @@ export default function InteractiveHero() {
       
       if (step.type === 'ai') {
         // Show typing indicator
-        // Use waving2 animation for the first AI message in demo
+        // Use talking animation for all AI messages
         const isFirstMessage = index === 0;
         if (isFirstMessage) {
-          transitionToVideo('waving2');
+          transitionToVideo('talking');
         }
         setIsTyping(true);
         
@@ -810,15 +783,16 @@ export default function InteractiveHero() {
           
           console.log('🎯 Demo AI message:', { index, isFirstMessage, isLastAIMessage, textLength: textToSpeak.length });
           
+          // Fallback: transition to talking immediately for demo
+          transitionToVideo('talking');
+          
           try {
             // speak() now resolves only when audio actually ends
             await speak(textToSpeak, {
               onStart: () => {
-                // Only change to talking when audio starts (not for first message with wave)
-                if (!isFirstMessage) {
-                  transitionToVideo('talking');
-                  console.log('🎬 Demo video synchronized with audio start');
-                }
+                // Always use talking animation when audio starts
+                transitionToVideo('talking');
+                console.log('🎬 Demo video synchronized with audio start');
               }
             });
             console.log('✅ Demo step', index, 'audio completed - returning to idle');
@@ -827,6 +801,7 @@ export default function InteractiveHero() {
           } catch (error) {
             console.error('❌ TTS error in demo step', index, error);
             // Fallback: use calculated duration if TTS fails
+            transitionToVideo('talking');
             const demoDuration = calculateTalkingDuration(step.text);
             await new Promise(resolve => setTimeout(resolve, demoDuration));
             transitionToVideo('idle');
@@ -1027,67 +1002,41 @@ export default function InteractiveHero() {
                       loading="eager"
                     />
                   )}
-                  {/* Video 1 */}
+                  {/* Single Video Element */}
                   <video
-                    ref={videoRef1}
+                    ref={videoRef}
                     autoPlay
                     muted
                     playsInline
                     webkit-playsinline="true"
                     x-webkit-airplay="allow"
                     poster="/videos/poster.jpg"
-                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ease-in-out ${
-                      activeVideo === 1 ? 'opacity-100 z-10' : 'opacity-0 z-0'
-                    }`}
+                    className="absolute inset-0 w-full h-full object-cover z-10"
                     onLoadedData={() => {
-                      console.log('Video 1 loaded');
+                      console.log('Video loaded');
                       setVideoLoaded(true);
                     }}
                     onCanPlay={() => {
                       setVideoLoaded(true);
                       // Força play no Safari/iOS quando vídeo estiver pronto
-                      if (videoRef1.current) {
-                        videoRef1.current.play().catch(e => {
-                          console.log('Video 1 autoplay retry failed:', e);
+                      if (videoRef.current) {
+                        videoRef.current.play().catch(e => {
+                          console.log('Video autoplay retry failed:', e);
                         });
                       }
                     }}
                     onError={(e) => {
-                      console.error('Video 1 error:', e);
+                      console.error('Video error:', e);
                     }}
                     aria-label="Sarah, your virtual assistant - video demonstration"
                     role="img"
                   />
-                  {/* Video 2 */}
-                  <video
-                    ref={videoRef2}
-                    autoPlay
-                    muted
-                    playsInline
-                    webkit-playsinline="true"
-                    x-webkit-airplay="allow"
-                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ease-in-out ${
-                      activeVideo === 2 ? 'opacity-100 z-10' : 'opacity-0 z-0'
-                    }`}
-                    onCanPlay={() => {
-                      // Força play no Safari/iOS quando vídeo estiver pronto
-                      if (videoRef2.current) {
-                        videoRef2.current.play().catch(e => {
-                          console.log('Video 2 autoplay retry failed:', e);
-                        });
-                      }
-                    }}
-                    onError={(e) => {
-                      console.error('Video 2 error:', e);
-                    }}
-                    aria-hidden={activeVideo !== 2}
-                  />
                   {/* Stronger bottom gradient for contrast */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none z-10" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none z-20" />
                   
                   
                   {/* Sarah Label */}
-                  <div className="absolute top-3 left-3 z-20">
+                  <div className="absolute top-3 left-3 z-30">
                     <div className="flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full">
                       <span className="text-xs text-white font-medium">Sarah — AI</span>
                       <span className="text-xs">·</span>
@@ -1096,7 +1045,7 @@ export default function InteractiveHero() {
                   </div>
                   
                   {/* TTS Audio Control Button (video always stays muted) */}
-                  <div className="absolute top-3 right-3 z-20">
+                  <div className="absolute top-3 right-3 z-30">
                     <button 
                       onClick={toggleAudio}
                       className="w-10 h-10 bg-black/60 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/80 transition-colors focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2"
@@ -1118,7 +1067,7 @@ export default function InteractiveHero() {
                   </div>
                   
                   {/* Status chips with improved readability - Hidden on mobile */}
-                  <div className="absolute bottom-4 left-4 z-20 hidden sm:block">
+                  <div className="absolute bottom-4 left-4 z-30 hidden sm:block">
                     {/* "I'm here 24/7..." line - smaller and above chips */}
                     <div className="text-sm text-white/90 mb-2" role="status" aria-live="polite">
                       I&apos;m here 24/7 to answer questions and book appointments

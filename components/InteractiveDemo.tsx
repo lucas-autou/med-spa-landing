@@ -83,7 +83,7 @@ export default function InteractiveDemo({
     
     // Show typing indicator
     useDemoStore.getState().setTyping(true);
-    useDemoStore.getState().setVideoState('listening');
+    useDemoStore.getState().setVideoState('idle');
 
     try {
       // Prepare conversation history for AI
@@ -144,9 +144,9 @@ export default function InteractiveDemo({
           }, 2000);
         }
         
-        // Return to listening state
+        // Return to idle state
         setTimeout(() => {
-          useDemoStore.getState().setVideoState('listening');
+          useDemoStore.getState().setVideoState('idle');
         }, 2500);
       }, 800);
 
@@ -163,7 +163,7 @@ export default function InteractiveDemo({
         );
         
         setTimeout(() => {
-          useDemoStore.getState().setVideoState('listening');
+          useDemoStore.getState().setVideoState('idle');
         }, 2000);
       }, 500);
     }

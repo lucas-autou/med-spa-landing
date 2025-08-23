@@ -4,7 +4,7 @@ import { demoConfig, getDemoStep, getNextStep, type DemoStep } from '@/lib/demoC
 import { classifyIntent, type Intent, type IntentResult } from '@/lib/intentMapping';
 
 export type DemoState = 'idle' | 'running' | 'completed' | 'freechat' | 'interactive';
-export type VideoState = 'idle' | 'listening' | 'talking_neutral' | 'talking_animated' | 'talking_empathetic' | 'ack_nod' | 'wave' | 'welcome' | 'pointing';
+export type VideoState = 'idle' | 'talking_neutral' | 'ack_nod' | 'wave' | 'welcome' | 'pointing';
 
 interface DemoStore {
   // Demo state
@@ -414,9 +414,9 @@ export const useDemoStore = create<DemoStore>((set, get) => ({
       setVideoState('talking_neutral');
       addConversationMessage('ai', result.response);
       
-      // Set video back to listening after response
+      // Set video back to idle after response
       setTimeout(() => {
-        setVideoState('listening');
+        setVideoState('idle');
       }, 2000);
     }, 500);
 
@@ -440,7 +440,7 @@ export const useDemoStore = create<DemoStore>((set, get) => ({
   setRecording: (recording: boolean) => {
     set({ isRecording: recording });
     if (recording) {
-      set({ videoState: 'listening' });
+      set({ videoState: 'idle' });
     }
   },
 

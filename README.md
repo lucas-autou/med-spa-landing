@@ -85,9 +85,9 @@ NEXT_PUBLIC_GA_MEASUREMENT_ID=G-...
 Place video files in `public/videos/`:
 - `idle.mp4` - Default state
 - `listening.mp4` - When user speaks
-- `talking_neutral.mp4` - Neutral responses
-- `talking_animated.mp4` - Enthusiastic responses  
-- `talking_empathetic.mp4` - Caring responses
+- `talking_neutral.mp4` - All speaking responses
+- `welcome.mp4` - Welcome/wave gestures
+- `pointing.mp4` - Pointing gestures
 
 ## 📱 Pages & Flow
 

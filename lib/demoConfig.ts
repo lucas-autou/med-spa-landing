@@ -67,7 +67,7 @@ export const demoConfig: DemoConfig = {
     {
       id: "greet",
       progress: "Step 1 of 3",
-      video: { enter: "listening", speak: "talking_neutral", exit: "listening" },
+      video: { enter: "idle", speak: "talking_neutral", exit: "idle" },
       bubble: "Hi—I'm Sarah, your virtual receptionist. Want to see me book an after-hours consult?",
       chips: [{ id: "start", label: "See it book in 20s", primary: true }],
       next: "service",
@@ -76,7 +76,7 @@ export const demoConfig: DemoConfig = {
     {
       id: "service",
       progress: "Step 1 of 3",
-      video: { enter: "listening", speak: "talking_neutral", exit: "listening" },
+      video: { enter: "idle", speak: "talking_neutral", exit: "idle" },
       bubble: "Pick a service to demo.",
       chips: [
         { id: "botox",   label: "Botox" },
@@ -94,7 +94,7 @@ export const demoConfig: DemoConfig = {
     {
       id: "volume",
       progress: "Step 2 of 3",
-      video: { enter: "listening", speak: "talking_neutral", exit: "listening" },
+      video: { enter: "idle", speak: "talking_neutral", exit: "idle" },
       bubble: "How many new leads per month right now?",
       chips: [
         { id: "lt20",  label: "<20" },
@@ -110,7 +110,7 @@ export const demoConfig: DemoConfig = {
     {
       id: "booking",
       progress: "Step 3 of 3",
-      video: { enter: "ack_nod", speak: "talking_neutral", exit: "listening" },
+      video: { enter: "ack_nod", speak: "talking_neutral", exit: "idle" },
       bubble: "Great, now let's find the perfect slot.",
       typingMs: 450,
       cards: [

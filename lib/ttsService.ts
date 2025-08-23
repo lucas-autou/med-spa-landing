@@ -23,6 +23,7 @@ class TTSService {
   private isSupported: boolean = false;
   private isSpeaking: boolean = false;
   private useElevenLabs: boolean = false;
+  private isIOS: boolean = false;
 
   constructor() {
     this.initialize();
@@ -31,10 +32,13 @@ class TTSService {
   private initialize() {
     // Try to initialize ElevenLabs first
     if (typeof window !== 'undefined') {
+      // Detect iOS
+      this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      
       try {
         this.useElevenLabs = initializeElevenLabs();
         if (this.useElevenLabs) {
-          console.log('🎙️ Using ElevenLabs for ultra-realistic TTS');
+          console.log('🎙️ Using ElevenLabs for ultra-realistic TTS', this.isIOS ? '(iOS)' : '');
         }
       } catch (error) {
         console.warn('Failed to initialize ElevenLabs:', error);
@@ -110,13 +114,20 @@ class TTSService {
         this.isSpeaking = false;
         return duration;
       } catch (error) {
-        console.warn('ElevenLabs TTS failed, falling back to browser TTS:', error);
+        console.warn('ElevenLabs TTS failed:', error);
         this.isSpeaking = false;
-        // Continue to browser TTS fallback
+        
+        // On iOS, don't fallback to browser TTS - just return silence
+        if (this.isIOS) {
+          console.log('🔇 iOS: Skipping browser TTS fallback to avoid robotic voice');
+          return 0; // Return immediately with 0 duration
+        }
+        
+        // Continue to browser TTS fallback for non-iOS
       }
     }
     
-    // Fallback to browser TTS
+    // Fallback to browser TTS (non-iOS only)
     return new Promise((resolve, reject) => {
       if (!this.isSupported || !this.synthesis) {
         console.warn('TTS not supported, skipping speech');

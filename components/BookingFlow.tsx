@@ -91,7 +91,7 @@ export default function BookingFlow({
           'ai', 
           "I'd love to connect you with our specialist for a quick consult. They'll ensure the perfect treatment plan for you."
         );
-        setVideoState('talking_empathetic');
+        setVideoState('talking_neutral');
       }, 500);
       
       return;
@@ -115,7 +115,7 @@ export default function BookingFlow({
           'ai', 
           generateConfirmationMessage(newBookingData)
         );
-        setVideoState('talking_animated');
+        setVideoState('talking_neutral');
       }, 500);
     } else {
       // Move to next step
@@ -160,7 +160,7 @@ export default function BookingFlow({
 
     // Simulate booking confirmation
     setTimeout(() => {
-      setVideoState('talking_animated');
+      setVideoState('talking_neutral');
       addConversationMessage(
         'ai',
         `Excellent! You're booked for ${bookingData.service_selection} on ${slot}. I'll send confirmation details right away.`

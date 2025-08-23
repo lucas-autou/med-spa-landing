@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { trackEvent } from '@/lib/analytics';
 
-export type AvatarState = 'idle' | 'listening' | 'talking' | 'ack_nod' | 'welcome' | 'pointing';
+export type AvatarState = 'idle' | 'talking' | 'ack_nod' | 'welcome' | 'pointing';
 
 export type LeadData = {
   service?: string;
@@ -233,7 +233,7 @@ export const useAssistantStore = create<AssistantStore>((set, get) => ({
   setListening: (listening) => 
     set({ 
       isListening: listening,
-      avatarState: listening ? 'listening' : 'idle'
+      avatarState: 'idle'
     }),
 
   setSpeaking: (speaking) => 

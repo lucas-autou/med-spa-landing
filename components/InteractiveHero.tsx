@@ -80,7 +80,7 @@ export default function InteractiveHero() {
   
   // Video and UI state
   const [videoLoaded, setVideoLoaded] = useState(false);
-  const [videoState, setVideoState] = useState<'idle' | 'listening' | 'talking'>('idle');
+  const [videoState, setVideoState] = useState<'idle' | 'talking'>('idle');
   const [activeVideo, setActiveVideo] = useState<1 | 2>(1); // Control which video is visible
   const [previousVideoPath, setPreviousVideoPath] = useState(''); // Track previous video path
   const [isMuted, setIsMuted] = useState(true); // Start muted by default
@@ -132,7 +132,7 @@ export default function InteractiveHero() {
 
 
   
-  // Add initial greeting message with auto-start
+  // Add initial greeting message (placeholder only - no animation)
   useEffect(() => {
     const initialMessage: ChatMessage = {
       id: '1',
@@ -141,17 +141,12 @@ export default function InteractiveHero() {
       timestamp: Date.now()
     };
     setMessages([initialMessage]);
-    // Start with talking animation for greeting
-    setVideoState('talking');
+    // Keep video in idle state - no talking animation on page load
+    // Video will only change to 'talking' after user interaction
     trackEvent('hero_view');
     
     // Don't speak initial greeting automatically (respect muted state on load)
     // TTS will only start after user interaction
-    
-    // Return to idle after greeting animation
-    setTimeout(() => {
-      setVideoState('idle');
-    }, 3000); // Greeting animation duration
     
     // Debug video elements
     setTimeout(() => {
@@ -183,7 +178,7 @@ export default function InteractiveHero() {
 
     setMessages(prev => [...prev, userMessage]);
     setIsTyping(true);
-    setVideoState('listening');
+    setVideoState('idle');
 
     try {
       // Prepare conversation history for AI
@@ -477,10 +472,9 @@ export default function InteractiveHero() {
   }, [messages]);
 
   // Simplified video state mapping - only 3 states
-  const getVideoSrc = useCallback((state: 'idle' | 'listening' | 'talking' = 'idle') => {
+  const getVideoSrc = useCallback((state: 'idle' | 'talking' = 'idle') => {
     const videoMap = {
       'idle': '/videos/idle.mp4',
-      'listening': '/videos/listening.mp4',
       'talking': '/videos/talking_neutral.mp4'
     };
     const src = videoMap[state];
@@ -521,7 +515,7 @@ export default function InteractiveHero() {
     
     // 3. Prepare the next video (the one that's hidden)
     nextVideoRef.current.src = currentVideoPath;
-    nextVideoRef.current.loop = (videoState === 'idle' || videoState === 'listening');
+    nextVideoRef.current.loop = (videoState === 'idle');
     nextVideoRef.current.currentTime = 0;
     nextVideoRef.current.load();
 
@@ -592,7 +586,6 @@ export default function InteractiveHero() {
     
     // Preload only the 3 video states we use
     preloadVideo('/videos/idle.mp4');
-    preloadVideo('/videos/listening.mp4');
     preloadVideo('/videos/talking_neutral.mp4');
   }, [preloadVideo]);
 
@@ -837,7 +830,7 @@ export default function InteractiveHero() {
         
       } else if (step.type === 'user') {
         // Simulate user typing
-        setVideoState('listening');
+        setVideoState('idle');
         const userMessage: ChatMessage = {
           id: `scripted_${index}`,
           type: 'user',

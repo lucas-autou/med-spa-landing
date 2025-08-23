@@ -25,7 +25,7 @@ export default function ConsultationHero() {
   const [currentChips, setCurrentChips] = useState<string[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
-  const [avatarState, setAvatarState] = useState<'idle' | 'listening' | 'talking' | 'ack_nod'>('idle');
+  const [avatarState, setAvatarState] = useState<'idle' | 'talking' | 'ack_nod'>('idle');
   const [hasInteracted, setHasInteracted] = useState(false);
   const [showDemoButton, setShowDemoButton] = useState(false);
   const [demoStarted, setDemoStarted] = useState(false);
@@ -85,12 +85,10 @@ export default function ConsultationHero() {
   const getVideoSrc = () => {
     const basePath = '/videos/';
     switch (avatarState) {
-      case 'listening':
-        return `${basePath}listening.mp4`;
       case 'talking':
         return `${basePath}talking_neutral.mp4`;
       case 'ack_nod':
-        return `${basePath}listening.mp4`;
+        return `${basePath}idle.mp4`;
       default:
         return `${basePath}idle.mp4`;
     }
@@ -181,7 +179,7 @@ export default function ConsultationHero() {
     
     setMessages(prev => [...prev, userMessage]);
     setShowChips(false);
-    setAvatarState('listening');
+    setAvatarState('idle');
     
     trackEvent('chip_select', { value: chip });
 

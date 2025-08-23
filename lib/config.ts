@@ -45,12 +45,7 @@ export const config = {
   avatar: {
     videos: {
       idle: "/videos/idle.mp4",
-      listening: "/videos/listening.mp4", 
-      talking: {
-        neutral: "/videos/talking_neutral.mp4",
-        animated: "/videos/talking_animated.mp4",
-        empathetic: "/videos/talking_empathetic.mp4",
-      },
+      talking: "/videos/talking_neutral.mp4",
       welcome: "/videos/welcome.mp4",
       pointing: "/videos/pointing.mp4",
     },

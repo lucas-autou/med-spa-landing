@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 
 interface AvatarPlaceholderProps {
-  state: 'idle' | 'listening' | 'talking' | 'ack_nod' | 'welcome' | 'pointing';
+  state: 'idle' | 'talking' | 'ack_nod' | 'welcome' | 'pointing';
   className?: string;
 }
 
@@ -22,7 +22,6 @@ export default function AvatarPlaceholder({ state, className = '' }: AvatarPlace
 
   const getStateDisplay = () => {
     switch (state) {
-      case 'listening':
         return {
           icon: '👂',
           bg: 'from-blue-500/20 to-cyan-500/20',
@@ -89,7 +88,6 @@ export default function AvatarPlaceholder({ state, className = '' }: AvatarPlace
         {/* State Indicator */}
         <div className="absolute top-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm font-medium">
           {state === 'idle' && '💤 Ready'}
-          {state === 'listening' && '👂 Listening'}
           {state === 'talking' && '💬 Speaking'}
           {state === 'ack_nod' && '😊 Acknowledging'}
           {state === 'welcome' && '👋 Welcome'}
@@ -100,7 +98,7 @@ export default function AvatarPlaceholder({ state, className = '' }: AvatarPlace
         <div className="absolute inset-0 rounded-full bg-gradient-to-t from-white/10 via-transparent to-transparent pointer-events-none" />
         
         {/* Animated ring for active states */}
-        {(state === 'listening' || state === 'talking' || state === 'welcome') && (
+        {(state === 'talking' || state === 'welcome') && (
           <div className="absolute inset-0 rounded-full animate-ping border-2 border-teal/30" />
         )}
       </div>

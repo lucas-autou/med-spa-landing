@@ -25,6 +25,8 @@ class ElevenLabsTTSClient {
   private selectedVoiceId: string = SARAH_VOICES.rachel;
   private isSpeaking = false;
   private isInitialized = false;
+  private isIOS = false;
+  private audioContext: AudioContext | null = null;
 
   public initialize(apiKey?: string): boolean {
     // Get API key from parameter or environment
@@ -36,14 +38,32 @@ class ElevenLabsTTSClient {
         return false;
       }
 
+      // Detect iOS
+      this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      
+      // Initialize audio context for iOS
+      if (this.isIOS && !this.audioContext) {
+        try {
+          this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+          // Resume context on user interaction
+          document.addEventListener('click', () => {
+            if (this.audioContext?.state === 'suspended') {
+              this.audioContext.resume();
+            }
+          }, { once: true });
+        } catch (e) {
+          console.warn('Failed to create AudioContext:', e);
+        }
+      }
+
       this.isInitialized = true;
-      console.log('✅ ElevenLabs TTS Client initialized');
+      console.log('✅ ElevenLabs TTS Client initialized', this.isIOS ? '(iOS detected)' : '');
       return true;
     }
     return false;
   }
 
-  public async speak(text: string, options: ElevenLabsTTSOptions = {}): Promise<number> {
+  public async speak(text: string, options: ElevenLabsTTSOptions = {}, retryCount = 0): Promise<number> {
     if (!this.isInitialized || !this.apiKey) {
       throw new Error('ElevenLabs not initialized');
     }
@@ -55,9 +75,15 @@ class ElevenLabsTTSClient {
       console.log('🎤 ElevenLabs TTS starting...', {
         textLength: text.length,
         voiceId: options.voiceId || this.selectedVoiceId,
+        retry: retryCount,
       });
 
-      // Make direct API call to ElevenLabs
+      // Make direct API call to ElevenLabs with timeout
+      const controller = new AbortController();
+      const timeout = setTimeout(() => {
+        controller.abort();
+      }, this.isIOS ? 8000 : 5000); // Longer timeout for iOS
+
       const response = await fetch(
         `https://api.elevenlabs.io/v1/text-to-speech/${options.voiceId || this.selectedVoiceId}`,
         {
@@ -77,8 +103,11 @@ class ElevenLabsTTSClient {
               use_speaker_boost: options.useSpeakerBoost ?? true,
             },
           }),
+          signal: controller.signal,
         }
       );
+
+      clearTimeout(timeout);
 
       if (!response.ok) {
         const error = await response.text();
@@ -152,9 +181,18 @@ class ElevenLabsTTSClient {
           reject(error);
         });
       });
-    } catch (error) {
+    } catch (error: any) {
       this.isSpeaking = false;
       console.error('❌ ElevenLabs TTS error:', error);
+      
+      // Retry logic - only retry once and not for auth errors
+      if (retryCount === 0 && !error.message?.includes('401') && !error.message?.includes('403')) {
+        console.log('🔄 Retrying ElevenLabs TTS...');
+        // Wait a bit before retry
+        await new Promise(resolve => setTimeout(resolve, 500));
+        return this.speak(text, options, 1);
+      }
+      
       throw error;
     }
   }

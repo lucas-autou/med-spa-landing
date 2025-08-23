@@ -40,10 +40,7 @@ export default function AvatarWidget({ className = '', autoStart = true, useDemo
   const preloadVideos = useCallback(async () => {
     const videos = [
       config.avatar.videos.idle,
-      config.avatar.videos.listening,
-      config.avatar.videos.talking.neutral,
-      config.avatar.videos.talking.animated,
-      config.avatar.videos.talking.empathetic,
+      config.avatar.videos.talking,
       config.avatar.videos.welcome,
       config.avatar.videos.pointing,
     ];
@@ -134,24 +131,15 @@ export default function AvatarWidget({ className = '', autoStart = true, useDemo
     const currentState = useDemo ? videoState : avatarState;
     
     switch (currentState) {
-      case 'listening':
-        newVideoSrc = config.avatar.videos.listening;
-        break;
       case 'talking':
       case 'talking_neutral':
-        newVideoSrc = config.avatar.videos.talking.neutral;
-        break;
-      case 'talking_animated':
-        newVideoSrc = config.avatar.videos.talking.animated;
-        break;
-      case 'talking_empathetic':
-        newVideoSrc = config.avatar.videos.talking.empathetic;
+        newVideoSrc = config.avatar.videos.talking;
         break;
       case 'ack_nod':
-        newVideoSrc = config.avatar.videos.listening;
+        newVideoSrc = config.avatar.videos.idle;
         break;
       case 'wave':
-        newVideoSrc = config.avatar.videos.talking.animated; // Use animated for wave
+        newVideoSrc = config.avatar.videos.welcome; // Use welcome for wave
         break;
       case 'welcome':
         newVideoSrc = config.avatar.videos.welcome;

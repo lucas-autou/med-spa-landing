@@ -13,35 +13,35 @@ interface Testimonial {
 const testimonials: Testimonial[] = [
   {
     id: '1',
-    name: 'Dr. Sarah Martinez',
-    role: 'Owner',
-    business: 'Beverly Hills Aesthetics',
-    quote: 'Sarah booked 18 new clients for us in week 1',
+    name: 'Nathalia Florindo',
+    role: 'Global HR Project Manager',
+    business: 'L’Oréal',
+    quote: 'This app is amazing! So good to have these KPIs available automatically',
     avatar: 'https://i.pravatar.cc/150?img=1'
   },
   {
     id: '2', 
-    name: 'Jennifer Chen',
-    role: 'Manager',
-    business: 'Glow Medical Spa',
-    quote: 'Never miss another after-hours booking again',
-    avatar: 'https://i.pravatar.cc/150?img=5'
-  },
-  {
-    id: '3',
-    name: 'Michael Thompson',
-    role: 'Director',
-    business: 'Luxe Wellness Miami',
-    quote: '40% increase in qualified leads, incredible ROI',
+    name: 'Mateus Flecha',
+    role: 'VP of Audit and Compliance',
+    business: 'Fiat',
+    quote: 'Well-deserved recognition for an outstanding result',
     avatar: 'https://i.pravatar.cc/150?img=3'
   },
   {
+    id: '3',
+    name: 'Marie Lambert',
+    role: 'Innovation & Project Manager',
+    business: 'Nestlé',
+    quote: 'Now we are able to track every single invoice with AI',
+    avatar: 'https://i.pravatar.cc/150?img=5'
+  },
+  {
     id: '4',
-    name: 'Amanda Rogers',
-    role: 'Founder',
-    business: 'Pure Aesthetics NYC',
-    quote: 'Sarah handles 200+ conversations monthly',
-    avatar: 'https://i.pravatar.cc/150?img=9'
+    name: 'Romulo Carmo',
+    role: 'Franchising Coordinator',
+    business: 'Prudential',
+    quote: 'The automated process is being delivered just as planned',
+    avatar: 'https://i.pravatar.cc/150?img=8'
   }
 ];
 
@@ -49,7 +49,7 @@ export default function SocialProof() {
   return (
     <section className="w-full py-12">
       <h2 className="text-2xl font-semibold text-center mb-8">
-        Why Med Spas Love Sarah
+        Trusted by Industry Leaders
       </h2>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

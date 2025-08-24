@@ -13,107 +13,99 @@ export default function FinalClose() {
   };
 
   return (
-    <section className="py-20 bg-gradient-to-br from-gray-900 to-gray-800 text-white relative overflow-hidden">
-      {/* Background pattern */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute inset-0" style={{
-          backgroundImage: `radial-gradient(circle at 20% 80%, rgba(20, 184, 166, 0.3) 0%, transparent 50%),
-                           radial-gradient(circle at 80% 20%, rgba(20, 184, 166, 0.3) 0%, transparent 50%)`,
-        }} />
-      </div>
-      
-      <div className="max-w-4xl mx-auto px-4 relative z-10">
-        <div className="text-center">
-          {/* Urgency Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-500/20 border border-red-500/30 rounded-full mb-6 animate-pulse">
-            <span className="w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
-            <span className="text-red-400 font-semibold text-sm">
-              Limited spots remaining for January setup
-            </span>
+    <>
+      {/* Micro-Testimonial Block */}
+      <section className="pt-12 pb-6 bg-background-secondary">
+        <div className="max-w-3xl mx-auto px-4">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-lg p-8 text-center">
+            <p className="text-lg text-text-primary italic mb-4 leading-relaxed">
+              “Our AI already answered more than 2,000 messages since we implemented it.”
+            </p>
+            <p className="text-sm text-text-secondary font-medium">
+              — Barbara R., Custommer Success Specialist
+            </p>
           </div>
+        </div>
+      </section>
 
-          {/* Main Promise */}
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6">
-            Ready to let Sarah work while you sleep?
+      {/* Final CTA Strip */}
+      <section className="pt-6 pb-16 bg-gradient-to-br from-teal via-teal to-teal-hover relative overflow-hidden">
+        {/* Premium background effects */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/5 via-transparent to-black/5"></div>
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-white/5 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-white/3 rounded-full blur-3xl"></div>
+
+        <div className="relative max-w-4xl mx-auto px-4 text-center">
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-5 leading-tight">
+            Never Miss a Client Again
           </h2>
-          
-          <p className="text-lg sm:text-xl text-gray-300 mb-10 max-w-2xl mx-auto">
-            Every night you&apos;re closed, potential clients are trying to book. 
-            Sarah captures them all — starting in just 72 hours.
+          <p className="text-xl text-white/95 mb-10 font-medium max-w-2xl mx-auto">
+            Go live in 48h. <span className="bg-white/20 px-3 py-1 rounded-full font-bold">Risk-free: book at least 1 lead in 14 days</span> or your money back.
           </p>
 
-          {/* Testimonial */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 mb-10 max-w-2xl mx-auto border border-white/20">
-            <p className="text-lg italic mb-4">
-              &ldquo;Game-changer! Our virtual receptionist captured 40% more leads in the first month. 
-              Sarah books appointments while I sleep.&rdquo;
-            </p>
-            <p className="text-sm text-gray-400">
-              — Sarah Martinez, Beverly Hills Aesthetics
-            </p>
-          </div>
-
-          {/* Final Stats */}
-          <div className="grid grid-cols-3 gap-4 max-w-xl mx-auto mb-10">
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-              <p className="text-3xl font-bold text-teal-400">21</p>
-              <p className="text-xs text-gray-400">New bookings</p>
-              <p className="text-xs text-gray-500">First month</p>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-              <p className="text-3xl font-bold text-teal-400">$9.4k</p>
-              <p className="text-xs text-gray-400">Extra revenue</p>
-              <p className="text-xs text-gray-500">Monthly avg</p>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-              <p className="text-3xl font-bold text-teal-400">3sec</p>
-              <p className="text-xs text-gray-400">Response time</p>
-              <p className="text-xs text-gray-500">24/7 availability</p>
-            </div>
-          </div>
-
-          {/* Final CTA */}
-          <div className="space-y-4">
+          <div className="relative group inline-block mb-8">
+            <div className="absolute -inset-2 bg-white/30 rounded-3xl blur-xl opacity-60 group-hover:opacity-80 transition duration-500"></div>
             <button
               onClick={handleCTAClick}
-              className="inline-flex items-center justify-center gap-2 px-10 py-4 text-lg font-bold rounded-xl bg-gradient-to-r from-teal to-teal-hover text-white hover:from-teal-hover hover:to-teal transition-all duration-200 shadow-2xl hover:shadow-teal/50 hover:-translate-y-0.5 group"
+              className="relative inline-flex items-center gap-4 bg-white text-teal hover:bg-gray-50 px-16 py-7 rounded-3xl font-bold text-2xl transition-all duration-300 shadow-2xl hover:shadow-3xl hover:scale-105 border border-white/20"
             >
-              Start 14-Day Pilot — $297
-              <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              Start Your 14-Day Pilot — $97
+              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
             </button>
-            
-            <p className="text-xs text-gray-400 mt-2">
-              After pilot/setup, service is $199/mo. Cancel anytime.
+          </div>
+
+          <p className="text-sm text-white/90 leading-relaxed max-w-2xl mx-auto mb-4">
+            After 14 days, Sarah continues at $297/mo unless you cancel. Full $97 credit applied to your first month if you continue.
+          </p>
+
+          <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm border border-white/30 text-white px-4 py-2 rounded-full">
+            <svg className="w-4 h-4 text-green-300" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+            </svg>
+            <span className="font-semibold text-sm">Trusted by 40+ companies worldwide</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Official Footer */}
+      <footer className="bg-gray-50 border-t border-gray-200 py-12">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="text-center">
+            <p className="text-sm text-gray-600 mb-2">
+              © 2025 Sarah AI, Inc. All rights reserved.
             </p>
-            
-            <div className="text-sm text-gray-400 mt-3">
-              <button
-                onClick={() => {
-                  trackEvent('see_plans_click', { location: 'final_close' });
-                  setShowPurchaseModal(true);
-                }}
-                className="underline hover:text-white transition-colors"
-              >
-                See plans
+            <p className="text-sm text-gray-500 mb-4">
+              21 SE 1st Avenue, 10th Floor, Miami, FL 33131, United States
+            </p>
+            <p className="text-sm text-gray-500 mb-6">
+              support@sarah.ai
+            </p>
+
+            <div className="flex flex-wrap justify-center items-center gap-6 text-sm text-gray-500">
+              <button className="hover:text-teal transition-colors">
+                Privacy Policy
+              </button>
+              <span className="text-gray-300">|</span>
+              <button className="hover:text-teal transition-colors">
+                Terms of Service
+              </button>
+              <span className="text-gray-300">|</span>
+              <button className="hover:text-teal transition-colors">
+                Refund Policy
               </button>
             </div>
           </div>
-
-          {/* Reassurance Strip */}
-          <p className="text-xs text-gray-500 mt-8">
-            Go live in 48–72h · We handle everything · Works with your booking system
-          </p>
         </div>
-      </div>
+      </footer>
 
       {/* Purchase Slide-over Modal */}
-      <PurchaseSlideOver 
+      <PurchaseSlideOver
         isOpen={showPurchaseModal}
         onClose={() => setShowPurchaseModal(false)}
         context="regular"
       />
-    </section>
+    </>
   );
 }

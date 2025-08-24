@@ -6,7 +6,7 @@ export default function FinalCTA() {
   return (
     <section className="py-20 px-4 bg-gradient-to-br from-teal/10 via-white to-blush/10">
       <div className="max-w-4xl mx-auto text-center">
-        
+
         {/* Main headline */}
         <div className="mb-12">
           <h2 className="text-3xl md:text-5xl font-bold text-text-primary mb-6">
@@ -51,7 +51,7 @@ export default function FinalCTA() {
             <h3 className="text-lg font-semibold text-text-primary mb-2">Setup in 3 Days</h3>
             <p className="text-text-secondary text-sm">Fast implementation with zero technical work required</p>
           </div>
-          
+
           <div className="flex flex-col items-center">
             <div className="w-16 h-16 bg-gradient-to-r from-teal to-blush rounded-full flex items-center justify-center mb-4">
               <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -62,7 +62,7 @@ export default function FinalCTA() {
             <h3 className="text-lg font-semibold text-text-primary mb-2">Cancel Anytime</h3>
             <p className="text-text-secondary text-sm">No long-term contracts or hidden fees</p>
           </div>
-          
+
           <div className="flex flex-col items-center">
             <div className="w-16 h-16 bg-gradient-to-r from-teal to-blush rounded-full flex items-center justify-center mb-4">
               <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -79,7 +79,7 @@ export default function FinalCTA() {
           <p className="text-text-secondary">
             <span className="inline-flex items-center mr-4">
               <span className="w-2 h-2 bg-status-success rounded-full mr-2 animate-pulse"></span>
-              Trusted by 200+ Med Spas
+              Trusted by 40+ companies worldwide
             </span>
             <span className="inline-flex items-center mr-4">
               <span className="w-2 h-2 bg-status-success rounded-full mr-2 animate-pulse"></span>

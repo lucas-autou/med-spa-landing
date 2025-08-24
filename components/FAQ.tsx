@@ -27,7 +27,7 @@ export default function FAQ() {
     },
     {
       question: "What's the monthly cost after the pilot?",
-      answer: "After your 14-day pilot or initial setup, Sarah is $199/month. This includes unlimited conversations, bookings, and all updates. No per-booking fees, no hidden costs. Cancel anytime.",
+      answer: "After your 14-day pilot or initial setup, Sarah is $297/month. This includes unlimited conversations, bookings, and all updates. No per-booking fees, no hidden costs. Cancel anytime.",
       chip: "Monthly cost"
     },
     {
@@ -42,7 +42,7 @@ export default function FAQ() {
   const toggleItem = (index: number) => {
     const newOpenItem = openItem === index ? null : index;
     setOpenItem(newOpenItem);
-    
+
     if (newOpenItem !== null) {
       trackEvent('faq_opened', { question_index: index, question: faqs[index].question });
     }
@@ -63,12 +63,12 @@ export default function FAQ() {
       <div className="max-w-4xl mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-text-primary mb-3">
-            Still have questions? Just ask Sarah.
+            Common questions from Spa Owners
           </h2>
           <p className="text-lg text-text-secondary mb-8">
             Click a topic below or expand for details
           </p>
-          
+
           {/* Quick access chips */}
           <div className="flex flex-wrap justify-center gap-2 mb-8">
             {quickChips.map((chip) => (
@@ -111,10 +111,10 @@ export default function FAQ() {
                   </div>
                 </div>
               </button>
-              
+
               <div className={`overflow-hidden transition-all duration-300 ${
-                openItem === index 
-                  ? 'max-h-96 opacity-100' 
+                openItem === index
+                  ? 'max-h-96 opacity-100'
                   : 'max-h-0 opacity-0'
               }`}>
                 <div className="px-8 pb-6">
@@ -128,7 +128,7 @@ export default function FAQ() {
         </div>
 
         {/* Still have questions? Ask Sarah video section */}
-        <div className="mt-16 mb-12 flex justify-center">
+        <div className="mt-16 mb-6 flex justify-center">
           {/* Sarah Video Container with overlaid text and button */}
           <div className="relative w-full max-w-2xl md:max-w-3xl lg:max-w-4xl aspect-[4/5] md:aspect-[16/10] rounded-3xl overflow-hidden bg-gray-100 border border-border-light shadow-2xl">
             <video
@@ -140,10 +140,10 @@ export default function FAQ() {
               className="absolute inset-0 w-full h-full object-cover"
               aria-label="Sarah virtual assistant - idle animation"
             />
-            
+
             {/* Gradient overlays for text readability */}
             <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/50 pointer-events-none" />
-            
+
             {/* Text at the top */}
             <div className="absolute top-0 left-0 right-0 pt-8 md:pt-12 px-6 text-center">
               <h3 className="text-3xl md:text-4xl font-bold text-white mb-2 drop-shadow-lg">
@@ -153,7 +153,7 @@ export default function FAQ() {
                 Just ask Sarah.
               </p>
             </div>
-            
+
             {/* Button at the bottom */}
             <div className="absolute bottom-0 left-0 right-0 pb-12 md:pb-16 px-6 flex justify-center">
               {/* Ask Sarah Button */}
@@ -177,38 +177,9 @@ export default function FAQ() {
           </div>
         </div>
 
-        {/* Sarah's nudge to convert */}
-        <div className="text-center mt-16 p-8 bg-gradient-to-br from-teal/5 to-white border border-teal/20 rounded-2xl shadow-lg">
-          <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 bg-teal rounded-full flex items-center justify-center">
-              <span className="text-white text-2xl font-bold">S</span>
-            </div>
-          </div>
-          <h3 className="text-xl font-semibold text-text-primary mb-3">
-            I&apos;m Sarah — ready to work for your med spa
-          </h3>
-          <p className="text-text-secondary mb-6">
-            Want me to start booking appointments for you? I can be live on your site in 72 hours.
-          </p>
-          <button
-            onClick={() => {
-              trackEvent('faq_cta_click');
-              setShowPurchaseModal(true);
-            }}
-            className="px-8 py-3 bg-teal hover:bg-teal-hover text-white font-semibold rounded-xl transition-colors shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-          >
-            Start 14-Day Pilot — $297
-          </button>
-          <p className="text-xs text-text-tertiary mt-3">
-            After pilot/setup, service is $199/mo. Cancel anytime.
-          </p>
-          <p className="text-xs text-text-tertiary mt-2">
-            Go live in 48–72h · We handle everything · Works with your booking system
-          </p>
-        </div>
 
         {/* Purchase Slide-over Modal */}
-        <PurchaseSlideOver 
+        <PurchaseSlideOver
           isOpen={showPurchaseModal}
           onClose={() => setShowPurchaseModal(false)}
           context="regular"

@@ -1,6 +1,5 @@
 import InteractiveHero from "@/components/InteractiveHero";
 import MedSpasLoveSarah from "@/components/MedSpasLoveSarah";
-import IntegrationsRow from "@/components/IntegrationsRow";
 import OfferPricing from "@/components/OfferPricing";
 import FAQ from "@/components/FAQ";
 import FinalClose from "@/components/FinalClose";
@@ -15,8 +14,6 @@ export default function Home() {
       {/* 2. Strong Social Proof - "Med Spas Love Sarah" */}
       <MedSpasLoveSarah />
       
-      {/* 3. Integrations - Trust & objection handling */}
-      <IntegrationsRow />
       
       {/* 5. Conversion Push - Pricing with guarantee */}
       <OfferPricing />

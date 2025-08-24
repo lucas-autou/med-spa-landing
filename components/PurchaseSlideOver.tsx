@@ -31,7 +31,7 @@ export default function PurchaseSlideOver({ isOpen, onClose, context, onKeepChat
   return (
     <>
       {/* Background overlay - lighter to keep chat visible */}
-      <div 
+      <div
         className="fixed inset-0 bg-black bg-opacity-30 z-40 transition-opacity duration-300"
         onClick={onClose}
       />
@@ -43,10 +43,10 @@ export default function PurchaseSlideOver({ isOpen, onClose, context, onKeepChat
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold text-text-primary">
-                Sarah&apos;s Ready to Work for You
+                Sarah&apos;s Ready to Work for You — Risk-Free
               </h2>
               <p className="text-sm text-text-secondary mt-1">
-                Let me handle your bookings, questions, and leads 24/7 — starting today.
+                Go live in 48–72h. Try Sarah for 14 days, no risk.
               </p>
             </div>
             <button
@@ -78,75 +78,74 @@ export default function PurchaseSlideOver({ isOpen, onClose, context, onKeepChat
               <div className="absolute -top-3 left-6 bg-teal-500 text-white px-4 py-1.5 rounded-full text-sm font-bold">
                 MOST POPULAR
               </div>
-              
-              <h3 className="text-2xl font-bold text-text-primary mb-2">Get Sarah Working Today</h3>
-              <p className="text-base text-text-secondary mb-6">14-day pilot program</p>
-              
-              <div className="mb-6">
-                <span className="text-5xl font-bold text-text-primary">$297</span>
-                <span className="text-lg text-text-secondary ml-2">one-time</span>
-                <div className="mt-3 space-y-1">
-                  <p className="text-sm text-green-600 font-semibold">
-                    ✓ Full credit if you upgrade
-                  </p>
-                  <p className="text-sm text-text-secondary">
-                    ✓ We do all setup for you
-                  </p>
-                </div>
-              </div>
-              
-              <ul className="space-y-3 mb-8">
-                <li className="flex items-center text-base">
-                  <svg className="w-5 h-5 text-teal-500 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span className="font-medium">14-day access</span>
+
+              <h3 className="text-2xl font-bold text-text-primary mb-2">14-Day Pilot — $97 one-time</h3>
+              <p className="text-base text-text-secondary mb-6">Perfect way to see Sarah in action</p>
+
+              <ul className="space-y-3 mb-6">
+                <li className="flex items-start text-base">
+                  <span className="text-teal-500 mr-3 flex-shrink-0 text-lg">✅</span>
+                  <span>Full setup done for you</span>
                 </li>
-                <li className="flex items-center text-base">
-                  <svg className="w-5 h-5 text-teal-500 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span className="font-medium">Full setup</span>
+                <li className="flex items-start text-base">
+                  <span className="text-teal-500 mr-3 flex-shrink-0 text-lg">✅</span>
+                  <span>Sarah live on IG DMs, SMS & chat</span>
                 </li>
-                <li className="flex items-center text-base">
-                  <svg className="w-5 h-5 text-teal-500 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span className="font-medium">Real leads</span>
+                <li className="flex items-start text-base">
+                  <span className="text-teal-500 mr-3 flex-shrink-0 text-lg">✅</span>
+                  <span>Real bookings delivered to your calendar</span>
                 </li>
-                <li className="flex items-center text-base">
-                  <svg className="w-5 h-5 text-teal-500 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span className="font-medium">Money-back</span>
+                <li className="flex items-start text-base">
+                  <span className="text-teal-500 mr-3 flex-shrink-0 text-lg">✅</span>
+                  <span>Cancel anytime — no contracts</span>
                 </li>
               </ul>
-              
+
+              {/* Money-Back Guarantee Badge */}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-6">
+                <p className="text-sm font-semibold text-green-800 text-center">
+                  💯 Book at least 1 new client in 14 days — or get 100% of your money back.
+                </p>
+              </div>
+
               <button
                 onClick={() => handlePurchase('pilot')}
                 disabled={isLoading === 'pilot'}
                 className="w-full py-4 bg-teal-500 hover:bg-teal-600 text-white text-lg font-bold rounded-xl transition-all hover:shadow-lg disabled:opacity-50"
               >
-                {isLoading === 'pilot' ? 'Loading...' : 'Activate Sarah for My Business'}
+                {isLoading === 'pilot' ? 'Loading...' : 'Start Risk-Free 14-Day Pilot — $97'}
               </button>
-              
-              {/* Social proof right under CTA */}
-              <p className="text-center text-sm text-text-secondary mt-4 font-medium">
-                Join 200+ med spas using Sarah
+
+              {/* Reassurance & Subscription details */}
+              <div className="text-center mt-4 space-y-2">
+                <p className="text-sm text-green-600 font-medium">
+                  Full refund if no bookings in 14 days.
+                </p>
+                <div className="space-y-1">
+                  <p className="text-xs text-text-secondary">
+                    Continues at $297/mo after 14 days unless you cancel. Cancel anytime.
+                  </p>
+                  <p className="text-xs text-text-secondary">
+                    Full $97 credit applied to your first month if you continue.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Testimonial for social proof */}
+            <div className="bg-gray-100 rounded-xl p-4">
+              <p className="text-sm text-text-secondary italic text-center">
+                "We booked 9 new appointments the first week — all while I was asleep."
+              </p>
+              <p className="text-sm text-text-secondary mt-2 text-center">
+                — Jessica R., Miami Med Spa
               </p>
             </div>
 
-            {/* Skip to Full Setup Link */}
-            <div className="text-center">
-              <p className="text-sm text-text-secondary mb-2">Ready to go all-in?</p>
-              <button
-                onClick={() => handlePurchase('full')}
-                disabled={isLoading === 'full'}
-                className="text-teal-600 hover:text-teal-700 text-sm font-medium underline transition-colors"
-              >
-                Get full setup for $997 + $97/mo
-              </button>
-            </div>
+            {/* Trust Badge */}
+            <p className="text-sm text-text-secondary font-medium text-center mt-4">
+              ⭐ Trusted by 40+ companies worldwide ⭐
+            </p>
           </div>
 
           {/* Trust badges */}
